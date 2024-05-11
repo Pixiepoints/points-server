@@ -51,3 +51,14 @@ public class RankingDetailIndexerDto
     public DateTime CreateTime { get; set; }
     public DateTime UpdateTime { get; set; }
 }
+
+public class OperatorDomainListDto
+{
+    public List<OperatorDomainDto> Data { get; set; }
+    public long TotalRecordCount { get; set; }
+}
+
+public class OperatorDomainListQuery
+{
+    public OperatorDomainListDto GetOperatorDomainList { get; set; }
+}

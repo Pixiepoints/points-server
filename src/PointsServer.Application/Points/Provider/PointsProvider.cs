@@ -19,7 +19,8 @@ public interface IPointsProvider
     public Task<PointsSumIndexerListDto> GetOperatorPointsSumIndexListByAddressAsync(
         GetOperatorPointsSumIndexListByAddressInput input);
 
-    public Task<Dictionary<string, List<DomainUserRelationShipIndexerDto>>> GetKolFollowersCountDicAsync(List<string> domainList);
+    public Task<Dictionary<string, List<DomainUserRelationShipIndexerDto>>> GetKolFollowersCountDicAsync(
+        List<string> domainList);
 
     Task<RankingDetailIndexerListDto> GetOperatorPointsActionSumAsync(GetOperatorPointsActionSumInput queryInput);
 
@@ -32,6 +33,11 @@ public interface IPointsProvider
 
     Task<List<UserReferralDto>> GetUserReferralRecordsAsync(List<string> addressList, long skipCount = 0,
         long maxResultCount = 1000);
+
+    Task<List<PointsSumIndexerDto>> GetPointsSumListAsync(GetPointsListInput input);
+
+    Task<List<OperatorDomainDto>> GetOperatorDomainListAsync(string dappId, List<string> addressList,
+        long skipCount = 0, long maxResultCount = 1000);
 }
 
 public class PointsProvider : IPointsProvider, ISingletonDependency
@@ -136,7 +142,8 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
         }
     }
 
-    public async Task<Dictionary<string, List<DomainUserRelationShipIndexerDto>>> GetKolFollowersCountDicAsync(List<string> domainList)
+    public async Task<Dictionary<string, List<DomainUserRelationShipIndexerDto>>> GetKolFollowersCountDicAsync(
+        List<string> domainList)
     {
         var indexerResult = await _graphQlHelper.QueryAsync<DomainUserRelationShipIndexerQuery>(new GraphQLRequest
         {
@@ -200,13 +207,14 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
                 role = queryInput.Role
             }
         });
-        
+
         if (indexerResult.GetPointsSumByAction.Data.IsNullOrEmpty())
         {
             return indexerResult.GetPointsSumByAction;
         }
-        
-        var selfIncreaseActionRecord = indexerResult.GetPointsSumByAction.Data.FirstOrDefault(x => x.ActionName == Constants.SelfIncreaseAction);
+
+        var selfIncreaseActionRecord =
+            indexerResult.GetPointsSumByAction.Data.FirstOrDefault(x => x.ActionName == Constants.SelfIncreaseAction);
         if (selfIncreaseActionRecord != null)
         {
             return indexerResult.GetPointsSumByAction;
@@ -228,6 +236,7 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
         {
             selfIncreaseActionRecord.Role = queryInput.Role.Value;
         }
+
         indexerResult.GetPointsSumByAction.Data.Add(selfIncreaseActionRecord);
 
         return indexerResult.GetPointsSumByAction;
@@ -356,6 +365,86 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
         {
             _logger.LogError(e, "GetUserReferralRecordsAsync error");
             return new List<UserReferralDto>();
+        }
+    }
+
+    public async Task<List<PointsSumIndexerDto>> GetPointsSumListAsync(GetPointsListInput input)
+    {
+        try
+        {
+            var indexerResult = await _graphQlHelper.QueryAsync<IndexerPointsSumListQueryDto>(new GraphQLRequest
+            {
+                Query =
+                    @"query($startTime:DateTime!,$endTime:DateTime!,$skipCount:Int!,$maxResultCount:Int!,$dappName:String!){
+                    getPointsSumBySymbol(input: {startTime:$startTime,endTime:$endTime,skipCount:$skipCount,maxResultCount:$maxResultCount,dappName:$dappName}){
+                        data {
+                        id,
+                        address,
+                        domain,
+    					role,
+    					dappId,
+                        firstSymbolAmount,
+                        secondSymbolAmount,
+                        thirdSymbolAmount,
+                        fourSymbolAmount,
+                        fiveSymbolAmount,
+                        sixSymbolAmount,
+                        sevenSymbolAmount,
+                        eightSymbolAmount,
+                        nineSymbolAmount,
+    					createTime,
+                        updateTime
+                        }
+                        
+                }
+            }",
+                Variables = new
+                {
+                    startTime = input.StartTime, endTime = input.EndTime, skipCount = input.SkipCount, maxResultCount = input.MaxResultCount,
+                    dappName = string.IsNullOrEmpty(input.DappName) ? "" : input.DappName
+                }
+            });
+            _logger.LogInformation(
+                "GetPointsSumListAsync, count: {count}", indexerResult.GetPointsSumBySymbol.Data.Count);
+            return indexerResult.GetPointsSumBySymbol.Data;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetUserReferralRecordsAsync error");
+            return new List<PointsSumIndexerDto>();
+        }
+    }
+
+    public async Task<List<OperatorDomainDto>> GetOperatorDomainListAsync(string dappId, List<string> addressList,
+        long skipCount = 0, long maxResultCount = 1000)
+    {
+        try
+        {
+            var indexerResult = await _graphQlHelper.QueryAsync<OperatorDomainListQuery>(new GraphQLRequest
+            {
+                Query =
+                    @"query($dappId:String!,$addressList:[String!],$skipCount:Int!,$maxResultCount:Int!){
+                    getPointsSumBySymbol(input: {dappId:$dappId,addressList:$addressList,skipCount:$skipCount,maxResultCount:$maxResultCount}){
+                        id,
+                        domain,
+                        depositAddress,
+                        inviterAddress,
+    					dappId
+                }
+            }",
+                Variables = new
+                {
+                    dappId = dappId, addressList = addressList, skipCount = skipCount, maxResultCount = maxResultCount
+                }
+            });
+            _logger.LogInformation(
+                "GetOperatorDomainListAsync, count: {count}", indexerResult.GetOperatorDomainList.Data.Count);
+            return indexerResult.GetOperatorDomainList.Data;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetOperatorDomainListAsync error");
+            return new List<OperatorDomainDto>();
         }
     }
 }

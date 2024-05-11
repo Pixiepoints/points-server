@@ -72,7 +72,7 @@ public class PointsService : IPointsService, ISingletonDependency
             .SelectMany(l => l.Select(d => d.Address))
             .Distinct()
             .ToList();
-        
+
         var inviteFollowersCountDic = await GetInviteFollowersCountDicAsync(inviteeAddressList);
 
         var domainInviteFollowersCountDic = new Dictionary<string, long>();
@@ -86,6 +86,7 @@ public class PointsService : IPointsService, ISingletonDependency
                     sum += num;
                 }
             }
+
             domainInviteFollowersCountDic.Add(keyValuePair.Key, sum);
         }
 
@@ -146,9 +147,11 @@ public class PointsService : IPointsService, ISingletonDependency
         var acceptRecord = actionPointList.FirstOrDefault(x => x.Action == Constants.AcceptReferral);
         if (joinRecord != null && acceptRecord != null)
         {
-            joinRecord.Amount = (BigInteger.Parse(joinRecord.Amount) + BigInteger.Parse(acceptRecord.Amount)).ToString();
+            joinRecord.Amount =
+                (BigInteger.Parse(joinRecord.Amount) + BigInteger.Parse(acceptRecord.Amount)).ToString();
             actionPointList.Remove(acceptRecord);
         }
+
         foreach (var actionPoints in actionPointList)
         {
             if (actionPoints.Action == CommonConstant.SelfIncreaseAction)
@@ -157,7 +160,7 @@ public class PointsService : IPointsService, ISingletonDependency
                 {
                     actionPoints.FollowersNumber = followersNumber.Count;
                 }
-                
+
                 actionPoints.InviteFollowersNumber = inviteFollowersCountDic.Values.Sum();
                 actionPoints.Rate = pointsRules.KolAmount;
                 actionPoints.InviteRate = pointsRules.KOLThirdLevelUserAmount;
@@ -205,7 +208,7 @@ public class PointsService : IPointsService, ISingletonDependency
             .SelectMany(p => p.Select(x => x.Address)).Distinct()
             .ToList();
         var inviteFollowersCountDic = await GetInviteFollowersCountDicAsync(addressList);
-        
+
         var domainInviteFollowersCountDic = new Dictionary<string, long>();
         foreach (var keyValuePair in kolFollowersCountDic)
         {
@@ -217,9 +220,10 @@ public class PointsService : IPointsService, ISingletonDependency
                     sum += num;
                 }
             }
+
             domainInviteFollowersCountDic.Add(keyValuePair.Key, sum);
         }
-        
+
         var items = new List<PointsEarnedListDto>();
         foreach (var operatorPointSumIndex in pointsList.Data)
         {
@@ -233,7 +237,8 @@ public class PointsService : IPointsService, ISingletonDependency
 
             if (pointsEarnedListDto.Role == OperatorRole.Kol)
             {
-                if (domainInviteFollowersCountDic.TryGetValue(operatorPointSumIndex.Domain, out var inviteFollowersNumber))
+                if (domainInviteFollowersCountDic.TryGetValue(operatorPointSumIndex.Domain,
+                        out var inviteFollowersNumber))
                 {
                     pointsEarnedListDto.InviteFollowersNumber = inviteFollowersNumber;
                 }
@@ -254,7 +259,7 @@ public class PointsService : IPointsService, ISingletonDependency
         resp.TotalCount = pointsList.TotalCount;
         resp.Items = items;
         return resp;
-    } 
+    }
 
     public async Task<PointsEarnedDetailDto> GetPointsEarnedDetailAsync(GetPointsEarnedDetailInput input)
     {
@@ -287,9 +292,11 @@ public class PointsService : IPointsService, ISingletonDependency
         var acceptRecord = actionPointList.FirstOrDefault(x => x.Action == Constants.AcceptReferral);
         if (joinRecord != null && acceptRecord != null)
         {
-            joinRecord.Amount = (BigInteger.Parse(joinRecord.Amount) + BigInteger.Parse(acceptRecord.Amount)).ToString();
+            joinRecord.Amount =
+                (BigInteger.Parse(joinRecord.Amount) + BigInteger.Parse(acceptRecord.Amount)).ToString();
             actionPointList.Remove(acceptRecord);
         }
+
         foreach (var actionPoints in actionPointList)
         {
             if (actionPoints.Action == CommonConstant.SelfIncreaseAction)
@@ -370,6 +377,10 @@ public class PointsService : IPointsService, ISingletonDependency
                 pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
                 if (pointsRules == null) break;
                 return pointsRules.DisplayNamePattern;
+            case Constants.AwakenLpHolding:
+                pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
+                if (pointsRules == null) break;
+                return pointsRules.DisplayNamePattern;
             default:
                 pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, Constants.DefaultAction);
                 if (pointsRules == null) break;
@@ -397,10 +408,12 @@ public class PointsService : IPointsService, ISingletonDependency
         {
             return resp;
         }
+
         //query master domain
         var schrodingerDAppDto = GetDappDto(input.DappName);
         var schrodingerDomain = schrodingerDAppDto?.Link.Replace("https://", "");
-        if (!schrodingerDomain.IsNullOrEmpty() && !schrodingerDomain.Equals(domain) && !queryInput.Domain.IsNullOrEmpty())
+        if (!CollectionUtilities.IsNullOrEmpty(schrodingerDomain) && !schrodingerDomain.Equals(domain) &&
+            !CollectionUtilities.IsNullOrEmpty(queryInput.Domain))
         {
             queryInput.Domain = schrodingerDomain;
             var schrodingerRecordPoints = await _pointsProvider.GetOperatorPointsActionSumAsync(queryInput);
@@ -428,7 +441,7 @@ public class PointsService : IPointsService, ISingletonDependency
                 UpdateTime = group.First().UpdateTime
             })
             .ToList();
-        
+
         var actionPointList =
             _objectMapper.Map<List<RankingDetailIndexerDto>, List<EarnedPointDto>>(actionRecordPoints.Data)
                 .OrderBy(o => o.Symbol).ToList();
@@ -437,9 +450,11 @@ public class PointsService : IPointsService, ISingletonDependency
         var acceptRecord = actionPointList.FirstOrDefault(x => x.Action == Constants.AcceptReferral);
         if (joinRecord != null && acceptRecord != null)
         {
-            joinRecord.Amount = (BigInteger.Parse(joinRecord.Amount) + BigInteger.Parse(acceptRecord.Amount)).ToString();
+            joinRecord.Amount =
+                (BigInteger.Parse(joinRecord.Amount) + BigInteger.Parse(acceptRecord.Amount)).ToString();
             actionPointList.Remove(acceptRecord);
         }
+
         foreach (var earnedPointDto in actionPointList)
         {
             PointsRules pointsRules;
@@ -501,6 +516,12 @@ public class PointsService : IPointsService, ISingletonDependency
                     earnedPointDto.Decimal = pointsRules.Decimal;
                     earnedPointDto.DisplayName = pointsRules.DisplayNamePattern;
                     break;
+                case Constants.AwakenLpHolding:
+                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(input.DappName, earnedPointDto.Action);
+                    if (pointsRules == null) continue;
+                    earnedPointDto.Decimal = pointsRules.Decimal;
+                    earnedPointDto.DisplayName = pointsRules.DisplayNamePattern;
+                    break;
                 default:
                     pointsRules =
                         await _pointsRulesProvider.GetPointsRulesAsync(input.DappName, Constants.DefaultAction);
@@ -515,6 +536,171 @@ public class PointsService : IPointsService, ISingletonDependency
 
         _logger.LogInformation("GetMyPointsAsync, resp:{resp}", JsonConvert.SerializeObject(resp));
         return resp;
+    }
+
+    public async Task<List<PointsListDto>> GetPointsListAsync(GetPointsListInput input)
+    {
+        var pointsSumIndexerDtos = await _pointsProvider.GetPointsSumListAsync(input);
+        return _objectMapper.Map<List<PointsSumIndexerDto>, List<PointsListDto>>(pointsSumIndexerDtos);
+    }
+
+    public async Task<List<RelationshipDto>> GetRelationshipListAsync(GetRelationshipInput input)
+    {
+        //inviter -> kol -> user
+        var inviterKolFollowerNumDic = await GetInviterKolFollowerNumDic(input);
+        //kol -> user -> user
+        var kolFollowerNumDic = await GetKolFollowerNumDic(input);
+        //user -> user -> user
+        var inviteeNumDic = await GetInviteeNumDic(input);
+
+        return input.AddressList.Select(address => new RelationshipDto
+        {
+            Address = address,
+            InviterKolFollowerNum = inviterKolFollowerNumDic.GetOrDefault(address),
+            KolFollowerNum = kolFollowerNumDic.GetOrDefault(address).KolFollowerNum,
+            KolFollowerInviteeNum = kolFollowerNumDic.GetOrDefault(address).KolFollowerInviteeNum,
+            InviteeNum = inviteeNumDic.GetOrDefault(address).InviteeNum,
+            SecondInviteeNum = inviteeNumDic.GetOrDefault(address).SecondInviteeNum,
+        }).ToList();
+    }
+
+    private async Task<Dictionary<string, InviteeNumDto>> GetInviteeNumDic(GetRelationshipInput input)
+    {
+        var secondLevelFollowersCountDic =
+            await GetNextLevelUserAddressList(input.AddressList);
+        var thirdFollowerAddress = secondLevelFollowersCountDic.Values
+            .SelectMany(p => p.Select(x => x.Referrer))
+            .Distinct()
+            .ToList();
+
+        var thirdLevelFollowersCountDic =
+            await GetNextLevelUserAddressList(thirdFollowerAddress);
+
+        var inviteeNumDic = new Dictionary<string, InviteeNumDto>();
+        foreach (var keyValuePair in secondLevelFollowersCountDic)
+        {
+            long secondInviteeNum = 0;
+            foreach (var userReferralDto in keyValuePair.Value)
+            {
+                if (thirdLevelFollowersCountDic.TryGetValue(userReferralDto.Referrer, out var list))
+                {
+                    secondInviteeNum += list.Count;
+                }
+            }
+
+            var inviteeNumDto = new InviteeNumDto
+            {
+                InviteeNum = keyValuePair.Value.Count,
+                SecondInviteeNum = secondInviteeNum
+            };
+            inviteeNumDic.Add(keyValuePair.Key, inviteeNumDto);
+        }
+
+        return inviteeNumDic;
+    }
+
+    private async Task<Dictionary<string, KolFollowerNumDto>> GetKolFollowerNumDic(GetRelationshipInput input)
+    {
+        var domainInfoList = await GetOperatorDomainListAsync(input.ChainId, input.AddressList, false);
+        var inviterFollowerDomainDic = domainInfoList
+            .GroupBy(a => a.InviterAddress)
+            .ToDictionary(a => a.Key, a => a.ToList());
+        var domains = inviterFollowerDomainDic.Values
+            .SelectMany(p => p.Select(x => x.Domain)).Distinct()
+            .ToList();
+        var domainFollowersDic = await GetKolFollowersCountDicAsync(domains);
+
+        var domainFollowerInviteeAddressList = domainFollowersDic.Values
+            .SelectMany(l => l.Select(d => d.Address))
+            .Distinct()
+            .ToList();
+
+        var domainFollowerInviteeCountDic = await GetInviteFollowersCountDicAsync(domainFollowerInviteeAddressList);
+
+        var kolFollowerNumDic = new Dictionary<string, KolFollowerNumDto>();
+        foreach (var keyValuePair in inviterFollowerDomainDic)
+        {
+            long kolFollowerNum = 0;
+            long kolFollowerInviteeNum = 0;
+            foreach (var operatorDomainDto in keyValuePair.Value)
+            {
+                if (!domainFollowersDic.TryGetValue(operatorDomainDto.Domain, out var list))
+                {
+                    continue;
+                }
+
+                kolFollowerNum += list.Count;
+                foreach (var dto in list)
+                {
+                    if (domainFollowerInviteeCountDic.TryGetValue(dto.Address, out var inviteeNum))
+                    {
+                        kolFollowerInviteeNum += inviteeNum;
+                    }
+                }
+            }
+
+            var kolFollowerNumDto = new KolFollowerNumDto
+            {
+                KolFollowerNum = kolFollowerNum,
+                KolFollowerInviteeNum = kolFollowerInviteeNum
+            };
+            kolFollowerNumDic.Add(keyValuePair.Key, kolFollowerNumDto);
+        }
+
+        return kolFollowerNumDic;
+    }
+
+    private async Task<Dictionary<string, long>> GetInviterKolFollowerNumDic(GetRelationshipInput input)
+    {
+        var domainInfoList = await GetOperatorDomainListAsync(input.ChainId, input.AddressList);
+        var inviterFollowerDomainDic = domainInfoList
+            .GroupBy(a => a.InviterAddress)
+            .ToDictionary(a => a.Key, a => a.ToList());
+        var domains = inviterFollowerDomainDic.Values
+            .SelectMany(p => p.Select(x => x.Domain)).Distinct()
+            .ToList();
+        var domainFollowersDic = await GetKolFollowersCountDicAsync(domains);
+        var inviterKolFollowerNumDic = new Dictionary<string, long>();
+        foreach (var keyValuePair in inviterFollowerDomainDic)
+        {
+            long sum = 0;
+            foreach (var operatorDomainDto in keyValuePair.Value)
+            {
+                if (domainFollowersDic.TryGetValue(operatorDomainDto.Domain, out var list))
+                {
+                    sum += list.Count;
+                }
+            }
+
+            inviterKolFollowerNumDic.Add(keyValuePair.Key, sum);
+        }
+
+        return inviterKolFollowerNumDic;
+    }
+
+    private async Task<List<OperatorDomainDto>> GetOperatorDomainListAsync(string chainId, List<string> addressList,
+        bool isInviter = true)
+    {
+        var res = new List<OperatorDomainDto>();
+        var skipCount = 0;
+        var maxResultCount = 5000;
+        List<OperatorDomainDto> list;
+        do
+        {
+            list = await _pointsProvider.GetOperatorDomainListAsync(chainId, addressList);
+            var count = list.Count;
+            res.AddRange(list);
+            if (list.IsNullOrEmpty() || count < maxResultCount)
+            {
+                break;
+            }
+
+            skipCount += count;
+        } while (!list.IsNullOrEmpty());
+
+        return isInviter
+            ? res.Where(x => x.DepositAddress != x.InviterAddress).ToList()
+            : res.Where(x => x.DepositAddress == x.InviterAddress).ToList();
     }
 
     private async Task SetUserLowerLevelRate(string address, EarnedPointDto earnedPointDto, PointsRules pointsRules)
@@ -584,7 +770,8 @@ public class PointsService : IPointsService, ISingletonDependency
             .ToDictionary(g => g.Key, g => g.First().InviteeNumber);
     }
 
-    private async Task<Dictionary<string, List<DomainUserRelationShipIndexerDto>>> GetKolFollowersCountDicAsync(List<string> domains)
+    private async Task<Dictionary<string, List<DomainUserRelationShipIndexerDto>>> GetKolFollowersCountDicAsync(
+        List<string> domains)
     {
         var splitDomainList = SplitDomainList(domains);
         var kolFollowersCountDic = new Dictionary<string, List<DomainUserRelationShipIndexerDto>>();
