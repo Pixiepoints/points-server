@@ -381,6 +381,10 @@ public class PointsService : IPointsService, ISingletonDependency
                 pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
                 if (pointsRules == null) break;
                 return pointsRules.DisplayNamePattern;
+            case Constants.UniswapLpHolding:
+                pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
+                if (pointsRules == null) break;
+                return pointsRules.DisplayNamePattern;
             default:
                 pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, Constants.DefaultAction);
                 if (pointsRules == null) break;
@@ -454,7 +458,19 @@ public class PointsService : IPointsService, ISingletonDependency
                 (BigInteger.Parse(joinRecord.Amount) + BigInteger.Parse(acceptRecord.Amount)).ToString();
             actionPointList.Remove(acceptRecord);
         }
-
+        
+        var tenSymbolList = actionPointList.Where(x => x.Action == Constants.UniswapLpHolding)
+            .ToList();
+        if (tenSymbolList.Count == 0)
+        {
+            var tenPoint = new EarnedPointDto
+            {
+                Amount = "0",
+                Action = Constants.UniswapLpHolding,
+            };
+            actionPointList.Add(tenPoint);
+        }
+        
         foreach (var earnedPointDto in actionPointList)
         {
             PointsRules pointsRules;
@@ -522,6 +538,13 @@ public class PointsService : IPointsService, ISingletonDependency
                     earnedPointDto.Decimal = pointsRules.Decimal;
                     earnedPointDto.DisplayName = pointsRules.DisplayNamePattern;
                     break;
+                case Constants.UniswapLpHolding:
+                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(input.DappName, earnedPointDto.Action);
+                    if (pointsRules == null) continue;
+                    earnedPointDto.Decimal = pointsRules.Decimal;
+                    earnedPointDto.DisplayName = pointsRules.DisplayNamePattern;
+                    earnedPointDto.Symbol = pointsRules.Symbol;
+                    break;
                 default:
                     pointsRules =
                         await _pointsRulesProvider.GetPointsRulesAsync(input.DappName, Constants.DefaultAction);
@@ -531,7 +554,7 @@ public class PointsService : IPointsService, ISingletonDependency
                     break;
             }
         }
-
+        
         resp.PointDetails.AddRange(actionPointList);
 
         _logger.LogInformation("GetMyPointsAsync, resp:{resp}", JsonConvert.SerializeObject(resp));
