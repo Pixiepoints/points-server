@@ -39,8 +39,6 @@ public class PointsServerApplicationAutoMapperProfile : Profile
             .ForMember(t => t.Amount, m => m.MapFrom(f => f.Amount))
             .ForMember(t => t.CreateTime, m => m.MapFrom(f => f.CreateTime.ToUtcMilliSeconds()))
             .ForMember(t => t.UpdateTime, m => m.MapFrom(f => f.UpdateTime.ToUtcMilliSeconds()));
-        CreateMap<PointsSumIndexerDto, PointsListDto>()
-            .ForMember(t => t.UpdateTime, m => m.MapFrom(f => f.UpdateTime.ToUtcMilliSeconds()))
-            ;
+        CreateMap<PointsSumIndexerDto, PointsListDto>();
     }
 }
