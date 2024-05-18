@@ -408,10 +408,7 @@ public class PointsService : IPointsService, ISingletonDependency
         queryInput.Role = OperatorRole.User;
         var actionRecordPoints = await _pointsProvider.GetOperatorPointsActionSumAsync(queryInput);
         var resp = new MyPointDetailsDto();
-        if (actionRecordPoints == null || actionRecordPoints.TotalRecordCount == 0)
-        {
-            return resp;
-        }
+    
 
         //query master domain
         var schrodingerDAppDto = GetDappDto(input.DappName);
