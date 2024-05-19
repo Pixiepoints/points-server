@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using PointsServer.Common;
 
@@ -24,6 +25,7 @@ public class PointsSumIndexerDto
     public string NineSymbolAmount { get; set; }
     public long UpdateTime { get; set; }
     public string DappName { get; set; }
+    public string DappId { get; set; }
     public string Icon { get; set; }
     public OperatorRole Role { get; set; }
 }
@@ -36,4 +38,9 @@ public class IndexerRankingListQueryDto
 public class IndexerPointsEarnedListQueryDto
 {
     public PointsSumIndexerListDto GetPointsEarnedList { get; set; }
+}
+
+public class IndexerPointsSumListQueryDto
+{
+    public PointsSumIndexerListDto GetPointsSumBySymbol { get; set; }
 }

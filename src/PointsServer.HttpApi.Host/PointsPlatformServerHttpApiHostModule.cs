@@ -276,7 +276,7 @@ namespace PointsServer
             app.UseUnitOfWork();
             app.UseConfiguredEndpoints();
 
-            StartOrleans(context.ServiceProvider);
+            //StartOrleans(context.ServiceProvider);
         }
 
         public override void OnApplicationShutdown(ApplicationShutdownContext context)
