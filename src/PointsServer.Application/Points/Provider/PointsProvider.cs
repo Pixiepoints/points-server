@@ -34,7 +34,7 @@ public interface IPointsProvider
     Task<List<UserReferralDto>> GetUserReferralRecordsAsync(List<string> addressList, long skipCount = 0,
         long maxResultCount = 1000);
 
-    Task<List<PointsSumIndexerDto>> GetPointsSumListAsync(GetPointsListInput input);
+    Task<List<PointsSumAllIndexerDto>> GetPointsSumListAsync(GetPointsListInput input);
 
     Task<List<OperatorDomainDto>> GetOperatorDomainListAsync(string dappId, List<string> addressList,
         long skipCount = 0, long maxResultCount = 1000);
@@ -368,7 +368,7 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
         }
     }
 
-    public async Task<List<PointsSumIndexerDto>> GetPointsSumListAsync(GetPointsListInput input)
+    public async Task<List<PointsSumAllIndexerDto>> GetPointsSumListAsync(GetPointsListInput input)
     {
         try
         {
@@ -392,6 +392,9 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
                         sevenSymbolAmount,
                         eightSymbolAmount,
                         nineSymbolAmount,
+                        tenSymbolAmount,
+                        elevenSymbolAmount,
+                        twelveSymbolAmount,
     					createTime,
                         updateTime
                         }
@@ -411,7 +414,7 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
         catch (Exception e)
         {
             _logger.LogError(e, "GetUserReferralRecordsAsync error");
-            return new List<PointsSumIndexerDto>();
+            return new List<PointsSumAllIndexerDto>();
         }
     }
 

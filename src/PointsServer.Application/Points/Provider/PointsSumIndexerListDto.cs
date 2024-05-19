@@ -23,6 +23,9 @@ public class PointsSumIndexerDto
     public string SevenSymbolAmount { get; set; }
     public string EightSymbolAmount { get; set; }
     public string NineSymbolAmount { get; set; }
+    public string TenSymbolAmount { get; set; } 
+    public string ElevenSymbolAmount { get; set; } 
+    public string TwelveSymbolAmount { get; set; } 
     public long UpdateTime { get; set; }
     public string DappName { get; set; }
     public string DappId { get; set; }
@@ -42,5 +45,34 @@ public class IndexerPointsEarnedListQueryDto
 
 public class IndexerPointsSumListQueryDto
 {
-    public PointsSumIndexerListDto GetPointsSumBySymbol { get; set; }
+    public PointsSumAllIndexerListDto GetPointsSumBySymbol { get; set; }
+}
+
+public class PointsSumAllIndexerListDto
+{
+    public long TotalCount { get; set; }
+    public List<PointsSumAllIndexerDto> Data { get; set; }
+}
+
+public class PointsSumAllIndexerDto
+{
+    public string Domain { get; set; }
+    public string Address { get; set; }
+    public string FirstSymbolAmount { get; set; }
+    public string SecondSymbolAmount { get; set; }
+    public string ThirdSymbolAmount { get; set; }
+    public string FourSymbolAmount { get; set; }
+    public string FiveSymbolAmount { get; set; }
+    public string SixSymbolAmount { get; set; }
+    public string SevenSymbolAmount { get; set; }
+    public string EightSymbolAmount { get; set; }
+    public string NineSymbolAmount { get; set; }
+    public string TenSymbolAmount { get; set; } 
+    public string ElevenSymbolAmount { get; set; } 
+    public string TwelveSymbolAmount { get; set; } 
+    public DateTime UpdateTime { get; set; }
+    public string DappName { get; set; }
+    public string DappId { get; set; }
+    public string Icon { get; set; }
+    public OperatorRole Role { get; set; }
 }
