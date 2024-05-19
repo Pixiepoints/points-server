@@ -561,7 +561,7 @@ public class PointsService : IPointsService, ISingletonDependency
     public async Task<List<PointsListDto>> GetPointsListAsync(GetPointsListInput input)
     {
         var pointsSumIndexerDtos = await _pointsProvider.GetPointsSumListAsync(input);
-        return _objectMapper.Map<List<PointsSumIndexerDto>, List<PointsListDto>>(pointsSumIndexerDtos);
+        return _objectMapper.Map<List<PointsSumAllIndexerDto>, List<PointsListDto>>(pointsSumIndexerDtos);
     }
 
     public async Task<List<RelationshipDto>> GetRelationshipListAsync(GetRelationshipInput input)
