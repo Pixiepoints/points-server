@@ -3,6 +3,7 @@ using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.VisualBasic;
 using Newtonsoft.Json;
@@ -29,10 +30,12 @@ public class PointsService : IPointsService, ISingletonDependency
     private readonly IOperatorDomainProvider _operatorDomainProvider;
     private readonly IDAppService _dAppService;
     private const int SplitSize = 1;
+    private readonly InternalWhiteListOptions _internalWhiteListOptions;
 
     public PointsService(IObjectMapper objectMapper, IPointsProvider pointsProvider,
         IPointsRulesProvider pointsRulesProvider, IOperatorDomainProvider operatorDomainProvider,
-        ILogger<PointsService> logger, IDAppService dAppService)
+        ILogger<PointsService> logger, IDAppService dAppService,
+        IOptionsSnapshot<InternalWhiteListOptions> internalWhiteListOptions)
     {
         _objectMapper = objectMapper;
         _pointsRulesProvider = pointsRulesProvider;
@@ -40,6 +43,7 @@ public class PointsService : IPointsService, ISingletonDependency
         _operatorDomainProvider = operatorDomainProvider;
         _logger = logger;
         _dAppService = dAppService;
+        _internalWhiteListOptions = internalWhiteListOptions.Value;
     }
 
     public async Task<PagedResultDto<RankingListDto>> GetRankingListAsync(GetRankingListInput input)
@@ -408,7 +412,7 @@ public class PointsService : IPointsService, ISingletonDependency
         queryInput.Role = OperatorRole.User;
         var actionRecordPoints = await _pointsProvider.GetOperatorPointsActionSumAsync(queryInput);
         var resp = new MyPointDetailsDto();
-    
+
 
         //query master domain
         var schrodingerDAppDto = GetDappDto(input.DappName);
@@ -455,7 +459,7 @@ public class PointsService : IPointsService, ISingletonDependency
                 (BigInteger.Parse(joinRecord.Amount) + BigInteger.Parse(acceptRecord.Amount)).ToString();
             actionPointList.Remove(acceptRecord);
         }
-        
+
         var tenSymbolList = actionPointList.Where(x => x.Action == Constants.UniswapLpHolding)
             .ToList();
         if (tenSymbolList.Count == 0)
@@ -467,7 +471,7 @@ public class PointsService : IPointsService, ISingletonDependency
             };
             actionPointList.Add(tenPoint);
         }
-        
+
         foreach (var earnedPointDto in actionPointList)
         {
             PointsRules pointsRules;
@@ -551,7 +555,7 @@ public class PointsService : IPointsService, ISingletonDependency
                     break;
             }
         }
-        
+
         resp.PointDetails.AddRange(actionPointList);
 
         _logger.LogInformation("GetMyPointsAsync, resp:{resp}", JsonConvert.SerializeObject(resp));
@@ -561,6 +565,17 @@ public class PointsService : IPointsService, ISingletonDependency
     public async Task<List<PointsListDto>> GetPointsListAsync(GetPointsListInput input)
     {
         var pointsSumIndexerDtos = await _pointsProvider.GetPointsSumListAsync(input);
+        var elevenSymbolAmountSubDic = _internalWhiteListOptions.ElevenAmountSubDic;
+        pointsSumIndexerDtos.ForEach(x =>
+        {
+            if (!elevenSymbolAmountSubDic.TryGetValue(x.Address, out var subAmount))
+            {
+                return;
+            }
+
+            var newAmount = BigInteger.Parse(x.ElevenSymbolAmount) - BigInteger.Parse(subAmount);
+            x.ElevenSymbolAmount = newAmount.ToString();
+        });
         return _objectMapper.Map<List<PointsSumAllIndexerDto>, List<PointsListDto>>(pointsSumIndexerDtos);
     }
 
