@@ -169,6 +169,17 @@ public class PointsService : IPointsService, ISingletonDependency
             actionPoints.Decimal = pointsRules.Decimal;
             actionPoints.DisplayName = await GetDisplayNameAsync(input.DappName, actionPoints);
         }
+        
+        actionPointList = actionPointList.OrderByDescending(o =>
+        {
+            var symbolData = o.Symbol.Split("-");
+            if (symbolData.Length != 2)
+            {
+                return 0;
+            }
+
+            return int.Parse(symbolData[1]);
+        }).ToList();
 
         resp.PointDetails = actionPointList;
 
