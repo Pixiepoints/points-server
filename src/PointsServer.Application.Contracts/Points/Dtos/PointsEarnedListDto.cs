@@ -18,6 +18,9 @@ public class PointsEarnedListDto
     public string SevenSymbolAmount { get; set; } 
     public string EightSymbolAmount { get; set; } 
     public string NineSymbolAmount { get; set; } 
+    public string TenSymbolAmount { get; set; } 
+    public string ElevenSymbolAmount { get; set; } 
+    public string TwelveSymbolAmount { get; set; } 
     public long FollowersNumber { get; set; }
     public long UpdateTime { get; set; }
     public decimal Rate { get; set; }
