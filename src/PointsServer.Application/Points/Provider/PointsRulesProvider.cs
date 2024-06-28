@@ -68,7 +68,7 @@ public class PointsRulesProvider : IPointsRulesProvider, ISingletonDependency
         var allSActionList = actionPointsRulesDic.Select(x => x.Key).ToList();
         foreach (var action in allSActionList)
         {
-            if (!currentActionList.Contains(action))
+            if (!currentActionList.Contains(action) && action != "Default")
             {
                 var rule = actionPointsRulesDic[action];
                 result.Add(new EarnedPointDto()
