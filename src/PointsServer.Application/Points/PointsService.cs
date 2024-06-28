@@ -574,6 +574,7 @@ public class PointsService : IPointsService, ISingletonDependency
             }
         }
         
+        actionPointList = await _pointsRulesProvider.AddAllPoints(actionPointList, input.DappName);
         resp.PointDetails.AddRange(actionPointList);
 
         _logger.LogInformation("GetMyPointsAsync, resp:{resp}", JsonConvert.SerializeObject(resp));
