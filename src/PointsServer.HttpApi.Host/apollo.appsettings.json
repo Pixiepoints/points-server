@@ -1,12 +1,10 @@
 {
   "apollo": {
     "UseApollo" : false,
-    "AppId": "PointsServer",
-    "MetaServer": "http://192.168.67.7:8080,http://192.168.66.35:8080",
+    "AppId": "Pixiepoints-Testnet",
+    "MetaServer": "http://10.10.32.82:8080,http://10.10.32.81:8080,http://10.10.32.80:8080",
     "Namespaces": [
-      "httpapi_appsettings.json",
-      "orleans.json",
-      "chains.json"
+      "host_appsettings.json"
     ]
   }
 }
