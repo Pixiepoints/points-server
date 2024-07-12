@@ -14,6 +14,7 @@ public class Constants
     public const string AcceptReferral = "AcceptReferral";
     public const string AwakenLpHolding = "AwakenLpHolding";
     public const string UniswapLpHolding = "UniswapLpHolding";
+    public const string CatNFTsHolding = "CatNFTsHolding";
 
     public const string DefaultAction = "Default";
     public const int MaxQuerySize = 10000;
