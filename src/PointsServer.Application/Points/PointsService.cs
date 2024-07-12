@@ -407,6 +407,10 @@ public class PointsService : IPointsService, ISingletonDependency
                 pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
                 if (pointsRules == null) break;
                 return pointsRules.DisplayNamePattern;
+            case Constants.CatNFTsHolding:
+                pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
+                if (pointsRules == null) break;
+                return pointsRules.DisplayNamePattern;
             default:
                 pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, Constants.DefaultAction);
                 if (pointsRules == null) break;
@@ -558,6 +562,13 @@ public class PointsService : IPointsService, ISingletonDependency
                     earnedPointDto.DisplayName = pointsRules.DisplayNamePattern;
                     break;
                 case Constants.UniswapLpHolding:
+                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(input.DappName, earnedPointDto.Action);
+                    if (pointsRules == null) continue;
+                    earnedPointDto.Decimal = pointsRules.Decimal;
+                    earnedPointDto.DisplayName = pointsRules.DisplayNamePattern;
+                    earnedPointDto.Symbol = pointsRules.Symbol;
+                    break;
+                case Constants.CatNFTsHolding:
                     pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(input.DappName, earnedPointDto.Action);
                     if (pointsRules == null) continue;
                     earnedPointDto.Decimal = pointsRules.Decimal;
