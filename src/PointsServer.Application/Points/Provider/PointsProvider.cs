@@ -433,7 +433,7 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
             {
                 Query =
                     @"query($dappId:String!,$addressList:[String!],$skipCount:Int!,$maxResultCount:Int!){
-                    getPointsSumBySymbol(input: {dappId:$dappId,addressList:$addressList,skipCount:$skipCount,maxResultCount:$maxResultCount}){
+                    getOperatorDomainList(input: {dappId:$dappId,addressList:$addressList,skipCount:$skipCount,maxResultCount:$maxResultCount}){
                         id,
                         domain,
                         depositAddress,
