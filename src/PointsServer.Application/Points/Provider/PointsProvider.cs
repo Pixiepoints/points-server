@@ -432,18 +432,21 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
             var indexerResult = await _graphQlHelper.QueryAsync<OperatorDomainListQuery>(new GraphQLRequest
             {
                 Query =
-                    @"query($dappId:String!,$addressList:[String!],$skipCount:Int!,$maxResultCount:Int!){
+                    @"query($dappId:String!,$addressList:[String!]!,$skipCount:Int!,$maxResultCount:Int!){
                     getOperatorDomainList(input: {dappId:$dappId,addressList:$addressList,skipCount:$skipCount,maxResultCount:$maxResultCount}){
-                        id,
-                        domain,
-                        depositAddress,
-                        inviterAddress,
-    					dappId
+                        totalRecordCount,
+                        data{
+                            id,
+                            domain,
+                            depositAddress,
+                            inviterAddress,
+    					    dappId
+                    }
                 }
             }",
                 Variables = new
                 {
-                    dappId = dappId, addressList = addressList, skipCount = skipCount, maxResultCount = maxResultCount
+                    dappId = string.IsNullOrEmpty(dappId) ? "" : dappId, addressList = addressList, skipCount = skipCount, maxResultCount = maxResultCount
                 }
             });
             _logger.LogInformation(

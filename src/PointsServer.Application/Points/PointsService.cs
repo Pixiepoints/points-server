@@ -610,11 +610,11 @@ public class PointsService : IPointsService, ISingletonDependency
         return input.AddressList.Select(address => new RelationshipDto
         {
             Address = address,
-            InviterKolFollowerNum = inviterKolFollowerNumDic.GetOrDefault(address),
-            KolFollowerNum = kolFollowerNumDic.GetOrDefault(address).KolFollowerNum,
-            KolFollowerInviteeNum = kolFollowerNumDic.GetOrDefault(address).KolFollowerInviteeNum,
-            InviteeNum = inviteeNumDic.GetOrDefault(address).InviteeNum,
-            SecondInviteeNum = inviteeNumDic.GetOrDefault(address).SecondInviteeNum,
+            InviterKolFollowerNum = inviterKolFollowerNumDic.TryGetValue(address, out var inviterKolFollowerNum) ? inviterKolFollowerNum : 0,
+            KolFollowerNum = kolFollowerNumDic.TryGetValue(address, out var kolFollower) ? kolFollower.KolFollowerNum : 0,
+            KolFollowerInviteeNum = kolFollowerNumDic.TryGetValue(address, out var kolFollowerInviteeNum) ? kolFollowerInviteeNum.KolFollowerInviteeNum : 0,
+            InviteeNum = inviteeNumDic.TryGetValue(address, out var inviteeNum) ? inviteeNum.InviteeNum : 0,
+            SecondInviteeNum = inviteeNumDic.TryGetValue(address, out var secondInviteeNum) ? secondInviteeNum.SecondInviteeNum : 0,
         }).ToList();
     }
 
@@ -655,7 +655,7 @@ public class PointsService : IPointsService, ISingletonDependency
 
     private async Task<Dictionary<string, KolFollowerNumDto>> GetKolFollowerNumDic(GetRelationshipInput input)
     {
-        var domainInfoList = await GetOperatorDomainListAsync(input.ChainId, input.AddressList, false);
+        var domainInfoList = await GetOperatorDomainListAsync(input.DappId, input.AddressList, false);
         var inviterFollowerDomainDic = domainInfoList
             .GroupBy(a => a.InviterAddress)
             .ToDictionary(a => a.Key, a => a.ToList());
@@ -706,7 +706,7 @@ public class PointsService : IPointsService, ISingletonDependency
 
     private async Task<Dictionary<string, long>> GetInviterKolFollowerNumDic(GetRelationshipInput input)
     {
-        var domainInfoList = await GetOperatorDomainListAsync(input.ChainId, input.AddressList);
+        var domainInfoList = await GetOperatorDomainListAsync(input.DappId, input.AddressList);
         var inviterFollowerDomainDic = domainInfoList
             .GroupBy(a => a.InviterAddress)
             .ToDictionary(a => a.Key, a => a.ToList());
@@ -732,7 +732,7 @@ public class PointsService : IPointsService, ISingletonDependency
         return inviterKolFollowerNumDic;
     }
 
-    private async Task<List<OperatorDomainDto>> GetOperatorDomainListAsync(string chainId, List<string> addressList,
+    private async Task<List<OperatorDomainDto>> GetOperatorDomainListAsync(string dappId, List<string> addressList,
         bool isInviter = true)
     {
         var res = new List<OperatorDomainDto>();
@@ -741,7 +741,7 @@ public class PointsService : IPointsService, ISingletonDependency
         List<OperatorDomainDto> list;
         do
         {
-            list = await _pointsProvider.GetOperatorDomainListAsync(chainId, addressList);
+            list = await _pointsProvider.GetOperatorDomainListAsync(dappId, addressList);
             var count = list.Count;
             res.AddRange(list);
             if (list.IsNullOrEmpty() || count < maxResultCount)
