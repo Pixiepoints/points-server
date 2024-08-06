@@ -623,7 +623,7 @@ public class PointsService : IPointsService, ISingletonDependency
         var secondLevelFollowersCountDic =
             await GetNextLevelUserAddressList(input.AddressList);
         var thirdFollowerAddress = secondLevelFollowersCountDic.Values
-            .SelectMany(p => p.Select(x => x.Referrer))
+            .SelectMany(p => p.Select(x => x.Invitee))
             .Distinct()
             .ToList();
 
