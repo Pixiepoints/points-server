@@ -17,7 +17,9 @@ public class PointsServerApplicationAutoMapperProfile : Profile
     {
         CreateMap<UserGrainDto, UserInformationEto>().ReverseMap();
         CreateMap<OperatorDomainGrainDto, OperatorDomainCreateEto>().ReverseMap();
-        CreateMap<DappInfo, DAppDto>().ReverseMap();
+        CreateMap<DappInfo, DAppDto>()
+            .ForPath(t => t.RankingColumns, m => m.MapFrom(f => f.RankingColumns))
+            ;
         CreateMap<GetRankingDetailInput, GetOperatorPointsActionSumInput>();
         CreateMap<GetRankingListInput, GetOperatorPointsSumIndexListInput>();
         CreateMap<PointsSumIndexerDto, RankingListDto>();
