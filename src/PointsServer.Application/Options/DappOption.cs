@@ -19,6 +19,7 @@ public class DappInfo
     public bool SupportsApply { get; set; }
     public List<string> PointsRule { get; set; }
     public List<RankingColumnDto> RankingColumns { get; set; }
+    public string Suffix { get; set; }
 }
 
 public class RankingColumnDto
