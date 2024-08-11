@@ -11,3 +11,10 @@ public class DAppDto
     public string FirstLevelDomain { get; set; }
     public bool SupportsApply { get; set; }
 }
+
+public class DAppFilterDto
+{
+    public string Icon { get; set; }
+    public string Name { get; set; }
+    public string Suffix { get; set; }
+}

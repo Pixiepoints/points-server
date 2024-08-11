@@ -64,6 +64,15 @@ public class DAppService : IDAppService
             .ToDictionary(g => g.Key, g => _objectMapper.Map<DappInfo, DAppDto>(g.First()));
     }
 
+    public async Task<List<DAppFilterDto>> GetDAppFilterAsync()
+    {
+        var filteredDApps = _dAppOption.CurrentValue.DappInfos
+            .Select(dApp => _objectMapper.Map<DappInfo, DAppFilterDto>(dApp))
+            .ToList();
+
+        return await Task.FromResult(filteredDApps);
+    }
+
     private string GetShowRole(OperatorRole role)
     {
         return role switch
