@@ -25,7 +25,9 @@ public class DAppFilterDto
 
 public class RankingColumn
 {
-    public string Icon { get; set; }
-    public string Name { get; set; }
-    public string Suffix { get; set; }
+    public string DataIndex { get; set; }
+    public string SortingKeyWord { get; set; }
+    public string Label { get; set; }
+    public string DefaultSortOrder { get; set; }
+    public string TipText { get; set; }
 }
