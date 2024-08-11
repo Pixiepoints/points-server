@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace PointsServer.DApps.Dtos;
 
 public class DAppDto
@@ -10,9 +12,18 @@ public class DAppDto
     public string SecondLevelDomain { get; set; }
     public string FirstLevelDomain { get; set; }
     public bool SupportsApply { get; set; }
+    public List<string> PointsRule { get; set; }
+    public List<RankingColumn> RankingColumns { get; set; }
 }
 
 public class DAppFilterDto
+{
+    public string Icon { get; set; }
+    public string Name { get; set; }
+    public string Suffix { get; set; }
+}
+
+public class RankingColumn
 {
     public string Icon { get; set; }
     public string Name { get; set; }
