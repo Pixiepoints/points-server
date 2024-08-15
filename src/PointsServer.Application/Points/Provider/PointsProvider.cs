@@ -381,8 +381,8 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
             var indexerResult = await _graphQlHelper.QueryAsync<IndexerPointsSumListQueryDto>(new GraphQLRequest
             {
                 Query =
-                    @"query($startTime:DateTime!,$endTime:DateTime!,$skipCount:Int!,$maxResultCount:Int!,$dappName:String!){
-                    getPointsSumBySymbol(input: {startTime:$startTime,endTime:$endTime,skipCount:$skipCount,maxResultCount:$maxResultCount,dappName:$dappName}){
+                    @"query($startTime:DateTime!,$endTime:DateTime!,$skipCount:Int!,$maxResultCount:Int!,$dappName:String!,$addressList:[String!]!){
+                    getPointsSumBySymbol(input: {startTime:$startTime,endTime:$endTime,skipCount:$skipCount,maxResultCount:$maxResultCount,dappName:$dappName,addressList:$addressList}){
                         data {
                         id,
                         address,
@@ -410,7 +410,7 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
                 Variables = new
                 {
                     startTime = input.StartTime, endTime = input.EndTime, skipCount = input.SkipCount, maxResultCount = input.MaxResultCount,
-                    dappName = string.IsNullOrEmpty(input.DappName) ? "" : input.DappName
+                    dappName = string.IsNullOrEmpty(input.DappName) ? "" : input.DappName, addressList = new List<string>()
                 }
             });
             _logger.LogInformation(
