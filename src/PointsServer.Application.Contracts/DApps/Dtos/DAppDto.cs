@@ -12,6 +12,7 @@ public class DAppDto
     public string SecondLevelDomain { get; set; }
     public string FirstLevelDomain { get; set; }
     public bool SupportsApply { get; set; }
+    public bool SupportsSelfIncrease { get; set; } = false;
     public List<string> PointsRule { get; set; }
     public List<RankingColumn> RankingColumns { get; set; }
 }
@@ -28,6 +29,7 @@ public class RankingColumn
     public string DataIndex { get; set; }
     public string SortingKeyWord { get; set; }
     public string Label { get; set; }
+    public bool SupportsSelfIncrease { get; set; } = false;
     public string DefaultSortOrder { get; set; }
     public string TipText { get; set; }
 }
