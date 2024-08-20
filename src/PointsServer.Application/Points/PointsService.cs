@@ -426,9 +426,9 @@ public class PointsService : IPointsService, ISingletonDependency
                     if (pointsRules == null) break;
                     return pointsRules.DisplayNamePattern;
                 default:
-                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, Constants.DefaultAction);
+                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
                     if (pointsRules == null) break;
-                    return Strings.Format(pointsRules.DisplayNamePattern, actionPoints.Action);
+                    return pointsRules.DisplayNamePattern;
             }
         }
         catch (Exception e)
