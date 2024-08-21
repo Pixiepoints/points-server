@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -151,9 +152,14 @@ public class PointsService : IPointsService, ISingletonDependency
                 (BigInteger.Parse(joinRecord.Amount) + BigInteger.Parse(acceptRecord.Amount)).ToString();
             actionPointList.Remove(acceptRecord);
         }
-
+        var newActionPointList = new List<ActionPoints>();
         foreach (var actionPoints in actionPointList)
         {
+            var displayName = await GetDisplayNameAsync(input.DappName, actionPoints);
+            if (string.IsNullOrEmpty(displayName))
+            {
+                continue;
+            }
             if (actionPoints.Action == CommonConstant.SelfIncreaseAction)
             {
                 if (kolFollowersCountDic.TryGetValue(input.Domain, out var followersNumber))
@@ -167,10 +173,11 @@ public class PointsService : IPointsService, ISingletonDependency
             }
 
             actionPoints.Decimal = pointsRules.Decimal;
-            actionPoints.DisplayName = await GetDisplayNameAsync(input.DappName, actionPoints);
+            actionPoints.DisplayName = displayName;
+            newActionPointList.Add(actionPoints);
         }
-        
-        actionPointList = actionPointList.OrderByDescending(o =>
+
+        newActionPointList = newActionPointList.OrderByDescending(o =>
         {
             var symbolData = o.Symbol.Split("-");
             if (symbolData.Length != 2)
@@ -181,7 +188,7 @@ public class PointsService : IPointsService, ISingletonDependency
             return int.Parse(symbolData[1]);
         }).ToList();
 
-        resp.PointDetails = actionPointList;
+        resp.PointDetails = newActionPointList;
 
         var domainInfo = await _operatorDomainProvider.GetOperatorDomainIndexAsync(input.Domain, true);
         if (domainInfo != null)
@@ -308,8 +315,14 @@ public class PointsService : IPointsService, ISingletonDependency
             actionPointList.Remove(acceptRecord);
         }
 
+        var newActionPointList = new List<ActionPoints>();
         foreach (var actionPoints in actionPointList)
         {
+            var displayName = await GetDisplayNameAsync(input.DappName, actionPoints);
+            if (string.IsNullOrEmpty(displayName))
+            {
+                continue;
+            }
             if (actionPoints.Action == CommonConstant.SelfIncreaseAction)
             {
                 if (kolFollowersCountDic.TryGetValue(input.Domain, out var followersNumber))
@@ -328,10 +341,11 @@ public class PointsService : IPointsService, ISingletonDependency
             }
 
             actionPoints.Decimal = pointsRules.Decimal;
-            actionPoints.DisplayName = await GetDisplayNameAsync(input.DappName, actionPoints);
+            actionPoints.DisplayName = displayName;
+            newActionPointList.Add(actionPoints);
         }
-        
-        actionPointList = actionPointList.OrderByDescending(o =>
+
+        newActionPointList = newActionPointList.OrderByDescending(o =>
         {
             var symbolData = o.Symbol.Split("-");
             if (symbolData.Length != 2)
@@ -342,7 +356,7 @@ public class PointsService : IPointsService, ISingletonDependency
             return int.Parse(symbolData[1]);
         }).ToList();
 
-        resp.PointDetails = actionPointList;
+        resp.PointDetails = newActionPointList;
 
         var domainInfo = await _operatorDomainProvider.GetOperatorDomainIndexAsync(input.Domain, true);
         if (domainInfo != null)
@@ -358,65 +372,69 @@ public class PointsService : IPointsService, ISingletonDependency
 
     private async Task<string> GetDisplayNameAsync(string dappName, ActionPoints actionPoints)
     {
-        PointsRules pointsRules;
-        switch (actionPoints.Action)
+        try
         {
-            case Constants.JoinAction:
-                pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
-                if (pointsRules == null) break;
-                return pointsRules.DisplayNamePattern;
-            case Constants.SelfIncreaseAction:
-                pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
-                if (pointsRules == null) break;
-                return pointsRules.DisplayNamePattern;
-
-            case Constants.ApplyToBeAdvocateAction:
-                pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
-                if (pointsRules == null) break;
-                return pointsRules.DisplayNamePattern;
-            case Constants.CommunityInteractionAction:
-                pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
-                if (pointsRules == null) break;
-                return pointsRules.DisplayNamePattern;
-            case Constants.AdoptAction:
-                pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
-                if (pointsRules == null) break;
-                return pointsRules.DisplayNamePattern;
-                break;
-            case Constants.RerollAction:
-                pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
-                if (pointsRules == null) break;
-                return pointsRules.DisplayNamePattern;
-            case Constants.TradeAction:
-                pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
-                if (pointsRules == null) break;
-                return pointsRules.DisplayNamePattern;
-            case Constants.TradeGen0Action:
-                pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
-                if (pointsRules == null) break;
-                return pointsRules.DisplayNamePattern;
-            case Constants.SGRHoldingAction:
-                pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
-                if (pointsRules == null) break;
-                return pointsRules.DisplayNamePattern;
-            case Constants.AwakenLpHolding:
-                pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
-                if (pointsRules == null) break;
-                return pointsRules.DisplayNamePattern;
-            case Constants.UniswapLpHolding:
-                pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
-                if (pointsRules == null) break;
-                return pointsRules.DisplayNamePattern;
-            case Constants.CatNFTsHolding:
-                pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
-                if (pointsRules == null) break;
-                return pointsRules.DisplayNamePattern;
-            default:
-                pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, Constants.DefaultAction);
-                if (pointsRules == null) break;
-                return Strings.Format(pointsRules.DisplayNamePattern, actionPoints.Action);
+            PointsRules pointsRules;
+            switch (actionPoints.Action)
+            {
+                case Constants.JoinAction:
+                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
+                    if (pointsRules == null) break;
+                    return pointsRules.DisplayNamePattern;
+                case Constants.SelfIncreaseAction:
+                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
+                    if (pointsRules == null) break;
+                    return pointsRules.DisplayNamePattern;
+                case Constants.ApplyToBeAdvocateAction:
+                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
+                    if (pointsRules == null) break;
+                    return pointsRules.DisplayNamePattern;
+                case Constants.CommunityInteractionAction:
+                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
+                    if (pointsRules == null) break;
+                    return pointsRules.DisplayNamePattern;
+                case Constants.AdoptAction:
+                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
+                    if (pointsRules == null) break;
+                    return pointsRules.DisplayNamePattern;
+                case Constants.RerollAction:
+                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
+                    if (pointsRules == null) break;
+                    return pointsRules.DisplayNamePattern;
+                case Constants.TradeAction:
+                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
+                    if (pointsRules == null) break;
+                    return pointsRules.DisplayNamePattern;
+                case Constants.TradeGen0Action:
+                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
+                    if (pointsRules == null) break;
+                    return pointsRules.DisplayNamePattern;
+                case Constants.SGRHoldingAction:
+                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
+                    if (pointsRules == null) break;
+                    return pointsRules.DisplayNamePattern;
+                case Constants.AwakenLpHolding:
+                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
+                    if (pointsRules == null) break;
+                    return pointsRules.DisplayNamePattern;
+                case Constants.UniswapLpHolding:
+                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
+                    if (pointsRules == null) break;
+                    return pointsRules.DisplayNamePattern;
+                case Constants.CatNFTsHolding:
+                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
+                    if (pointsRules == null) break;
+                    return pointsRules.DisplayNamePattern;
+                default:
+                    pointsRules = await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
+                    if (pointsRules == null) break;
+                    return pointsRules.DisplayNamePattern;
+            }
         }
-
+        catch (Exception e)
+        {
+            return "";
+        }
         return "";
     }
 
@@ -434,7 +452,7 @@ public class PointsService : IPointsService, ISingletonDependency
         queryInput.Role = OperatorRole.User;
         var actionRecordPoints = await _pointsProvider.GetOperatorPointsActionSumAsync(queryInput);
         var resp = new MyPointDetailsDto();
-    
+
 
         //query master domain
         var schrodingerDAppDto = GetDappDto(input.DappName);
@@ -481,7 +499,7 @@ public class PointsService : IPointsService, ISingletonDependency
                 (BigInteger.Parse(joinRecord.Amount) + BigInteger.Parse(acceptRecord.Amount)).ToString();
             actionPointList.Remove(acceptRecord);
         }
-        
+
         var tenSymbolList = actionPointList.Where(x => x.Action == Constants.UniswapLpHolding)
             .ToList();
         if (tenSymbolList.Count == 0)
@@ -493,7 +511,7 @@ public class PointsService : IPointsService, ISingletonDependency
             };
             actionPointList.Add(tenPoint);
         }
-        
+
         foreach (var earnedPointDto in actionPointList)
         {
             PointsRules pointsRules;
@@ -584,7 +602,7 @@ public class PointsService : IPointsService, ISingletonDependency
                     break;
             }
         }
-        
+
         actionPointList = await _pointsRulesProvider.AddAllPoints(actionPointList, input.DappName);
         resp.PointDetails.AddRange(actionPointList);
 
@@ -610,11 +628,19 @@ public class PointsService : IPointsService, ISingletonDependency
         return input.AddressList.Select(address => new RelationshipDto
         {
             Address = address,
-            InviterKolFollowerNum = inviterKolFollowerNumDic.GetOrDefault(address),
-            KolFollowerNum = kolFollowerNumDic.GetOrDefault(address).KolFollowerNum,
-            KolFollowerInviteeNum = kolFollowerNumDic.GetOrDefault(address).KolFollowerInviteeNum,
-            InviteeNum = inviteeNumDic.GetOrDefault(address).InviteeNum,
-            SecondInviteeNum = inviteeNumDic.GetOrDefault(address).SecondInviteeNum,
+            InviterKolFollowerNum = inviterKolFollowerNumDic.TryGetValue(address, out var inviterKolFollowerNum)
+                ? inviterKolFollowerNum
+                : 0,
+            KolFollowerNum = kolFollowerNumDic.TryGetValue(address, out var kolFollower)
+                ? kolFollower.KolFollowerNum
+                : 0,
+            KolFollowerInviteeNum = kolFollowerNumDic.TryGetValue(address, out var kolFollowerInviteeNum)
+                ? kolFollowerInviteeNum.KolFollowerInviteeNum
+                : 0,
+            InviteeNum = inviteeNumDic.TryGetValue(address, out var inviteeNum) ? inviteeNum.InviteeNum : 0,
+            SecondInviteeNum = inviteeNumDic.TryGetValue(address, out var secondInviteeNum)
+                ? secondInviteeNum.SecondInviteeNum
+                : 0,
         }).ToList();
     }
 
@@ -623,7 +649,7 @@ public class PointsService : IPointsService, ISingletonDependency
         var secondLevelFollowersCountDic =
             await GetNextLevelUserAddressList(input.AddressList);
         var thirdFollowerAddress = secondLevelFollowersCountDic.Values
-            .SelectMany(p => p.Select(x => x.Referrer))
+            .SelectMany(p => p.Select(x => x.Invitee))
             .Distinct()
             .ToList();
 
@@ -655,7 +681,7 @@ public class PointsService : IPointsService, ISingletonDependency
 
     private async Task<Dictionary<string, KolFollowerNumDto>> GetKolFollowerNumDic(GetRelationshipInput input)
     {
-        var domainInfoList = await GetOperatorDomainListAsync(input.ChainId, input.AddressList, false);
+        var domainInfoList = await GetOperatorDomainListAsync(input.DappId, input.AddressList, false);
         var inviterFollowerDomainDic = domainInfoList
             .GroupBy(a => a.InviterAddress)
             .ToDictionary(a => a.Key, a => a.ToList());
@@ -706,7 +732,7 @@ public class PointsService : IPointsService, ISingletonDependency
 
     private async Task<Dictionary<string, long>> GetInviterKolFollowerNumDic(GetRelationshipInput input)
     {
-        var domainInfoList = await GetOperatorDomainListAsync(input.ChainId, input.AddressList);
+        var domainInfoList = await GetOperatorDomainListAsync(input.DappId, input.AddressList);
         var inviterFollowerDomainDic = domainInfoList
             .GroupBy(a => a.InviterAddress)
             .ToDictionary(a => a.Key, a => a.ToList());
@@ -732,7 +758,7 @@ public class PointsService : IPointsService, ISingletonDependency
         return inviterKolFollowerNumDic;
     }
 
-    private async Task<List<OperatorDomainDto>> GetOperatorDomainListAsync(string chainId, List<string> addressList,
+    private async Task<List<OperatorDomainDto>> GetOperatorDomainListAsync(string dappId, List<string> addressList,
         bool isInviter = true)
     {
         var res = new List<OperatorDomainDto>();
@@ -741,7 +767,7 @@ public class PointsService : IPointsService, ISingletonDependency
         List<OperatorDomainDto> list;
         do
         {
-            list = await _pointsProvider.GetOperatorDomainListAsync(chainId, addressList);
+            list = await _pointsProvider.GetOperatorDomainListAsync(dappId, addressList);
             var count = list.Count;
             res.AddRange(list);
             if (list.IsNullOrEmpty() || count < maxResultCount)

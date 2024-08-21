@@ -10,4 +10,5 @@ public interface IDAppService
     Task<List<RoleDto>> GetRolesAsync(bool includePersonal = false);
     Dictionary<string, DAppDto> GetDappIdDic();
     Dictionary<string, DAppDto> GetDappDomainDic();
+    Task<List<DAppFilterDto>> GetDAppFilterAsync();
 }

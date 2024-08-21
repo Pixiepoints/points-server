@@ -4,8 +4,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using GraphQL;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using PointsServer.Common;
 using PointsServer.Common.GraphQL;
+using PointsServer.DApps;
+using PointsServer.Options;
 using PointsServer.Points.Dtos;
 using PointsServer.Worker.Provider.Dtos;
 using Volo.Abp.DependencyInjection;
@@ -44,11 +47,13 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
 {
     private readonly IGraphQlHelper _graphQlHelper;
     private readonly ILogger<PointsProvider> _logger;
+    private readonly IDAppService _dAppService;
 
-    public PointsProvider(IGraphQlHelper graphQlHelper, ILogger<PointsProvider> logger)
+    public PointsProvider(IGraphQlHelper graphQlHelper, ILogger<PointsProvider> logger, IDAppService dAppService)
     {
         _graphQlHelper = graphQlHelper;
         _logger = logger;
+        _dAppService = dAppService;
     }
 
     public async Task<PointsSumIndexerListDto> GetOperatorPointsSumIndexListAsync(
@@ -227,6 +232,12 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
         }
 
         var updateTime = indexerResult.GetPointsSumByAction.Data.MaxBy(x => x.UpdateTime).UpdateTime;
+        var dappIdDic = _dAppService.GetDappIdDic();
+        if (!dappIdDic.TryGetValue(queryInput.DappName, out var dappInfo) || !dappInfo.SupportsSelfIncrease)
+        {
+            return indexerResult.GetPointsSumByAction;
+        }
+
         selfIncreaseActionRecord = new RankingDetailIndexerDto
         {
             Address = queryInput.Address,
@@ -237,12 +248,11 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
             Amount = "0",
             CreateTime = updateTime,
             UpdateTime = updateTime
-        };
+        }; 
         if (queryInput.Role != null)
         {
             selfIncreaseActionRecord.Role = queryInput.Role.Value;
         }
-
         indexerResult.GetPointsSumByAction.Data.Add(selfIncreaseActionRecord);
 
         return indexerResult.GetPointsSumByAction;
@@ -381,8 +391,8 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
             var indexerResult = await _graphQlHelper.QueryAsync<IndexerPointsSumListQueryDto>(new GraphQLRequest
             {
                 Query =
-                    @"query($startTime:DateTime!,$endTime:DateTime!,$skipCount:Int!,$maxResultCount:Int!,$dappName:String!){
-                    getPointsSumBySymbol(input: {startTime:$startTime,endTime:$endTime,skipCount:$skipCount,maxResultCount:$maxResultCount,dappName:$dappName}){
+                    @"query($startTime:DateTime!,$endTime:DateTime!,$skipCount:Int!,$maxResultCount:Int!,$dappName:String!,$addressList:[String!]!){
+                    getPointsSumBySymbol(input: {startTime:$startTime,endTime:$endTime,skipCount:$skipCount,maxResultCount:$maxResultCount,dappName:$dappName,addressList:$addressList}){
                         data {
                         id,
                         address,
@@ -409,8 +419,10 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
             }",
                 Variables = new
                 {
-                    startTime = input.StartTime, endTime = input.EndTime, skipCount = input.SkipCount, maxResultCount = input.MaxResultCount,
-                    dappName = string.IsNullOrEmpty(input.DappName) ? "" : input.DappName
+                    startTime = input.StartTime, endTime = input.EndTime, skipCount = input.SkipCount,
+                    maxResultCount = input.MaxResultCount,
+                    dappName = string.IsNullOrEmpty(input.DappName) ? "" : input.DappName,
+                    addressList = new List<string>()
                 }
             });
             _logger.LogInformation(
@@ -432,18 +444,22 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
             var indexerResult = await _graphQlHelper.QueryAsync<OperatorDomainListQuery>(new GraphQLRequest
             {
                 Query =
-                    @"query($dappId:String!,$addressList:[String!],$skipCount:Int!,$maxResultCount:Int!){
-                    getPointsSumBySymbol(input: {dappId:$dappId,addressList:$addressList,skipCount:$skipCount,maxResultCount:$maxResultCount}){
-                        id,
-                        domain,
-                        depositAddress,
-                        inviterAddress,
-    					dappId
+                    @"query($dappId:String!,$addressList:[String!]!,$skipCount:Int!,$maxResultCount:Int!){
+                    getOperatorDomainList(input: {dappId:$dappId,addressList:$addressList,skipCount:$skipCount,maxResultCount:$maxResultCount}){
+                        totalRecordCount,
+                        data{
+                            id,
+                            domain,
+                            depositAddress,
+                            inviterAddress,
+    					    dappId
+                    }
                 }
             }",
                 Variables = new
                 {
-                    dappId = dappId, addressList = addressList, skipCount = skipCount, maxResultCount = maxResultCount
+                    dappId = string.IsNullOrEmpty(dappId) ? "" : dappId, addressList = addressList,
+                    skipCount = skipCount, maxResultCount = maxResultCount
                 }
             });
             _logger.LogInformation(

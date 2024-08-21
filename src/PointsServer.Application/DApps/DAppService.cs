@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using PointsServer.Common;
 using PointsServer.DApps.Dtos;
 using PointsServer.Options;
@@ -30,7 +31,6 @@ public class DAppService : IDAppService
                 && (!input.Categories.Any() || input.Categories.Contains(dApp.Category)))
             .Select(dApp => _objectMapper.Map<DappInfo, DAppDto>(dApp))
             .ToList();
-
         return await Task.FromResult(filteredDApps);
     }
 
@@ -62,6 +62,15 @@ public class DAppService : IDAppService
             .Where(d => !string.IsNullOrEmpty(d.FirstLevelDomain))
             .GroupBy(d => d.FirstLevelDomain)
             .ToDictionary(g => g.Key, g => _objectMapper.Map<DappInfo, DAppDto>(g.First()));
+    }
+
+    public async Task<List<DAppFilterDto>> GetDAppFilterAsync()
+    {
+        var filteredDApps = _dAppOption.CurrentValue.DappInfos
+            .Select(dApp => _objectMapper.Map<DappInfo, DAppFilterDto>(dApp))
+            .ToList();
+
+        return await Task.FromResult(filteredDApps);
     }
 
     private string GetShowRole(OperatorRole role)

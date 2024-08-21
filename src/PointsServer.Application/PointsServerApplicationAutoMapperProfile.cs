@@ -42,5 +42,11 @@ public class PointsServerApplicationAutoMapperProfile : Profile
         CreateMap<PointsSumAllIndexerDto, PointsListDto>()
             .ForMember(t => t.UpdateTime, m => m.MapFrom(f => f.UpdateTime.ToUtcMilliSeconds()))
             ;
+        CreateMap<DappInfo, DAppFilterDto>()
+            .ForMember(t => t.Name, m => m.MapFrom(f => f.DappName))
+            .ReverseMap();
+        
+        CreateMap<RankingColumnDto, RankingColumn>()
+            .ReverseMap();
     }
 }

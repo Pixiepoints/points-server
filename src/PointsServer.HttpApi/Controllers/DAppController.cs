@@ -32,4 +32,10 @@ public class DAppController : PointsServerController
     {
         return await _dAppService.GetRolesAsync();
     }
+    
+    [HttpGet("filter")]
+    public async Task<List<DAppFilterDto>> GetDAppFilterAsync()
+    {
+        return await _dAppService.GetDAppFilterAsync();
+    }
 }
