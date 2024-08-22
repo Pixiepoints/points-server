@@ -391,8 +391,8 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
             var indexerResult = await _graphQlHelper.QueryAsync<IndexerPointsSumListQueryDto>(new GraphQLRequest
             {
                 Query =
-                    @"query($startTime:DateTime!,$endTime:DateTime!,$skipCount:Int!,$maxResultCount:Int!,$dappName:String!,$addressList:[String!]!,$hiddenMainDomain:Boolean!){
-                    getPointsSumBySymbol(input: {startTime:$startTime,endTime:$endTime,skipCount:$skipCount,maxResultCount:$maxResultCount,dappName:$dappName,addressList:$addressList,hiddenMainDomain:$hiddenMainDomain}){
+                    @"query($startTime:DateTime!,$endTime:DateTime!,$skipCount:Int!,$maxResultCount:Int!,$dappName:String!,$addressList:[String!]!,$hiddenMainDomain:Boolean!,$role:IncomeSourceType){
+                    getPointsSumBySymbol(input: {startTime:$startTime,endTime:$endTime,skipCount:$skipCount,maxResultCount:$maxResultCount,dappName:$dappName,addressList:$addressList,hiddenMainDomain:$hiddenMainDomain,role:$role}){
                         data {
                         id,
                         address,
@@ -423,7 +423,8 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
                     maxResultCount = input.MaxResultCount,
                     dappName = string.IsNullOrEmpty(input.DappName) ? "" : input.DappName,
                     addressList = new List<string>(),
-                    hiddenMainDomain = true
+                    hiddenMainDomain = true,
+                    role = OperatorRole.All
                 }
             });
             _logger.LogInformation(
