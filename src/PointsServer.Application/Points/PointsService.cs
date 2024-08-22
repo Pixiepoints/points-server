@@ -440,7 +440,7 @@ public class PointsService : IPointsService, ISingletonDependency
 
     public async Task<MyPointDetailsDto> GetMyPointsAsync(GetMyPointsInput input)
     {
-        var domain = await _pointsProvider.GetUserRegisterDomainByAddressAsync(input.Address);
+        var domain = await _pointsProvider.GetUserRegisterDomainByAddressAsync(input.Address, input.DappName);
         if (domain == null)
         {
             return new MyPointDetailsDto();

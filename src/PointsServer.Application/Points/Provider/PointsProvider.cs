@@ -32,7 +32,7 @@ public interface IPointsProvider
     Task<List<UserReferralCountDto>> GetUserReferralCountAsync(List<string> addressList, int skipCount = 0,
         int maxResultCount = 1000);
 
-    Task<string> GetUserRegisterDomainByAddressAsync(string address);
+    Task<string> GetUserRegisterDomainByAddressAsync(string address, string dappName);
 
     Task<List<UserReferralDto>> GetUserReferralRecordsAsync(List<string> addressList, long skipCount = 0,
         long maxResultCount = 1000);
@@ -317,7 +317,7 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
         }
     }
 
-    public async Task<string> GetUserRegisterDomainByAddressAsync(string address)
+    public async Task<string> GetUserRegisterDomainByAddressAsync(string address, string dappName)
     {
         var indexerResult = await _graphQlHelper.QueryAsync<DomainUserRelationShipQuery>(new GraphQLRequest
         {
@@ -336,7 +336,7 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
             }",
             Variables = new
             {
-                domainIn = new List<string>(), dappNameIn = new List<string>(),
+                domainIn = new List<string>(), dappNameIn = new List<string>() { dappName },
                 addressIn = new List<string>() { address }, skipCount = 0, maxResultCount = 1
             }
         });
