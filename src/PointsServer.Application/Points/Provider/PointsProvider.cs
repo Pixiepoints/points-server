@@ -424,7 +424,7 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
                     dappName = string.IsNullOrEmpty(input.DappName) ? "" : input.DappName,
                     addressList = new List<string>(),
                     hiddenMainDomain = true,
-                    role = OperatorRole.All
+                    role = OperatorRole.Kol
                 }
             });
             _logger.LogInformation(
