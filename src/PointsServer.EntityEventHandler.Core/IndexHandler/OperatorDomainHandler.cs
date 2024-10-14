@@ -1,7 +1,9 @@
 using System;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
+using OpenIddict.Abstractions;
 using PointsServer.Apply.Etos;
 using PointsServer.Operator;
 using Volo.Abp.DependencyInjection;
@@ -25,8 +27,7 @@ public class OperatorDomainHandler : IDistributedEventHandler<OperatorDomainCrea
         _objectMapper = objectMapper;
         _logger = logger;
     }
-
-
+    
     public async Task HandleEventAsync(OperatorDomainCreateEto eventData)
     {
         if (eventData == null)

@@ -1,6 +1,8 @@
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
 using Orleans;
 using PointsServer.Common;
+using PointsServer.Grains.Exceptions;
 using PointsServer.Grains.State.Points;
 using Volo.Abp.ObjectMapping;
 
@@ -17,18 +19,20 @@ public class OperatorPointSumGrain : Grain<OperatorPointSumState>, IOperatorPoin
         _logger = logger;
     }
 
-    public override async Task OnActivateAsync()
-    {
-        await ReadStateAsync();
-        await base.OnActivateAsync();
-    }
+    // public override async Task OnActivateAsync()
+    // {
+    //     await ReadStateAsync();
+    //     await base.OnActivateAsync();
+    // }
+    //
+    // public override async Task OnDeactivateAsync()
+    // {
+    //     await WriteStateAsync();
+    //     await base.OnDeactivateAsync();
+    // }
 
-    public override async Task OnDeactivateAsync()
-    {
-        await WriteStateAsync();
-        await base.OnDeactivateAsync();
-    }
-
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
+        MethodName = nameof(ExceptionHandlingService.HandleException), Message = "UpdatePointsSumAsync error")]
     public async Task<GrainResultDto<OperatorPointSumGrainDto>> UpdatePointsSumAsync(OperatorPointSumGrainDto grainDto)
     {
         var result = new GrainResultDto<OperatorPointSumGrainDto>();

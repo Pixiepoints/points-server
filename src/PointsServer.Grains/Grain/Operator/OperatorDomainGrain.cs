@@ -17,17 +17,17 @@ public class OperatorDomainGrain : Grain<OperatorDomainState>, IOperatorDomainGr
         _logger = logger;
     }
 
-    public override async Task OnActivateAsync()
-    {
-        await ReadStateAsync();
-        await base.OnActivateAsync();
-    }
-
-    public override async Task OnDeactivateAsync()
-    {
-        await WriteStateAsync();
-        await base.OnDeactivateAsync();
-    }
+    // public override async Task OnActivateAsync()
+    // {
+    //     await ReadStateAsync();
+    //     await base.OnActivateAsync();
+    // }
+    //
+    // public override async Task OnDeactivateAsync()
+    // {
+    //     await WriteStateAsync();
+    //     await base.OnDeactivateAsync();
+    // }
 
     public async Task<GrainResultDto<OperatorDomainGrainDto>> AddOperatorDomainAsync(OperatorDomainGrainDto dto)
     {

@@ -39,6 +39,7 @@ namespace PointsServer.ContractEventHandler
 
         internal static IHostBuilder CreateHostBuilder(string[] args) =>
             Host.CreateDefaultBuilder(args)
+                .UseOrleansClient()
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddApplication<PointsServerContractEventHandlerModule>();

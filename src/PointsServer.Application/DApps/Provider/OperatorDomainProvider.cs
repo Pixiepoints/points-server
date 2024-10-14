@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using AElf.Indexing.Elasticsearch;
 using GraphQL;
 using Microsoft.Extensions.Logging;
 using Nest;
 using PointsServer.Common.GraphQL;
+using PointsServer.Exceptions;
 using PointsServer.Operator;
 using PointsServer.Points.Provider;
 using Volo.Abp.DependencyInjection;
@@ -32,37 +34,32 @@ public class OperatorDomainProvider : IOperatorDomainProvider, ISingletonDepende
         _logger = logger;
     }
 
-    public async Task<OperatorDomainDto> GetOperatorDomainIndexAsync(string domain, bool getDescribe)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
+        MethodName = nameof(ExceptionHandlingService.HandleException), ReturnDefault = ReturnDefault.New,
+        Message = "GetOperatorDomainIndexAsync error")]
+    public virtual async Task<OperatorDomainDto> GetOperatorDomainIndexAsync(string domain, bool getDescribe)
     {
-        try
+        if (string.IsNullOrWhiteSpace(domain))
         {
-            if (string.IsNullOrWhiteSpace(domain))
-            {
-                return null;
-            }
-
-            var indexerOperatorDomainInfo = await GetIndexerOperatorDomainInfoAsync(domain);
-
-            if (indexerOperatorDomainInfo == null)
-            {
-                return null;
-            }
-            
-            if (!getDescribe)
-            {
-                return indexerOperatorDomainInfo;
-            }
-
-            var operatorDomainIndex = await GetOperatorDomainIndexAsync(domain);
-            indexerOperatorDomainInfo.Descibe = operatorDomainIndex?.Descibe;
-
-            return indexerOperatorDomainInfo;
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetOperatorDomainIndexAsync Exception domain:{Domain}", domain);
             return null;
         }
+
+        var indexerOperatorDomainInfo = await GetIndexerOperatorDomainInfoAsync(domain);
+
+        if (indexerOperatorDomainInfo == null)
+        {
+            return null;
+        }
+
+        if (!getDescribe)
+        {
+            return indexerOperatorDomainInfo;
+        }
+
+        var operatorDomainIndex = await GetOperatorDomainIndexAsync(domain);
+        indexerOperatorDomainInfo.Descibe = operatorDomainIndex?.Descibe;
+
+        return indexerOperatorDomainInfo;
     }
 
     private async Task<OperatorDomainInfoIndex> GetOperatorDomainIndexAsync(string domain)
@@ -77,14 +74,15 @@ public class OperatorDomainProvider : IOperatorDomainProvider, ISingletonDepende
         return await _repository.GetAsync(Filter);
     }
 
-    private async Task<OperatorDomainDto> GetIndexerOperatorDomainInfoAsync(string domain)
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
+        MethodName = nameof(ExceptionHandlingService.HandleException), ReturnDefault = ReturnDefault.New,
+        Message = "GetIndexerOperatorDomainInfoAsync error")]
+    protected virtual async Task<OperatorDomainDto> GetIndexerOperatorDomainInfoAsync(string domain)
     {
-        try
+        var indexerResult = await _graphQlHelper.QueryAsync<OperatorDomainIndexerQueryDto>(new GraphQLRequest
         {
-            var indexerResult = await _graphQlHelper.QueryAsync<OperatorDomainIndexerQueryDto>(new GraphQLRequest
-            {
-                Query =
-                    @"query($domain:String!){
+            Query =
+                @"query($domain:String!){
                     operatorDomainInfo(input: {domain:$domain}){
                         id,
                         domain,
@@ -93,18 +91,12 @@ public class OperatorDomainProvider : IOperatorDomainProvider, ISingletonDepende
     					dappId               
                 }
             }",
-                Variables = new
-                {
-                    domain = domain
-                }
-            });
+            Variables = new
+            {
+                domain = domain
+            }
+        });
 
-            return indexerResult?.OperatorDomainInfo;
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "GetOperatorDomainInfoAsync Exception domain:{Domain}", domain);
-            return null;
-        }
+        return indexerResult?.OperatorDomainInfo;
     }
 }

@@ -39,6 +39,7 @@ public class Program
             var builder = WebApplication.CreateBuilder(args);
             builder.Configuration.AddJsonFile("apollo.appsettings.json");
             builder.Host.AddAppSettingsSecretsJson()
+                .UseOrleansClient()
                 .UseAutofac()
                 .UseApollo()
                 .UseSerilog();

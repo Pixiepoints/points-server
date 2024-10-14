@@ -5,11 +5,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using AElf;
 using AElf.Cryptography;
+using AElf.ExceptionHandler;
 using AElf.Types;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.Newtonsoft;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -18,6 +18,7 @@ using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using PointsServer.Common;
 using PointsServer.Dto;
+using PointsServer.Exceptions;
 using PointsServer.Options;
 using PointsServer.Users;
 using PointsServer.Users.Provider;
@@ -58,137 +59,124 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
 
     public string Name { get; } = "signature";
 
-    public async Task<IActionResult> HandleAsync(ExtensionGrantContext context)
+    [ExceptionHandler([typeof(UserFriendlyException)], TargetType = typeof(ExceptionHandlingService),
+        MethodName = nameof(ExceptionHandlingService.HandleExceptionWithInvalidRequest),
+        Message = "SignatureGrantHandler HandleAsync error")]
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
+        MethodName = nameof(ExceptionHandlingService.HandleExceptionWithServerError),
+        Message = "SignatureGrantHandler HandleAsync error")]
+    public virtual async Task<IActionResult> HandleAsync(ExtensionGrantContext context)
     {
-        try
+        var publicKeyVal = context.Request.GetParameter("publickey").ToString();
+        var signatureVal = context.Request.GetParameter("signature").ToString();
+        var timestampVal = context.Request.GetParameter("timestamp").ToString();
+        var address = context.Request.GetParameter("address").ToString();
+        var source = context.Request.GetParameter("source").ToString();
+
+        AssertHelper.NotEmpty(source, "invalid parameter source.");
+        AssertHelper.NotEmpty(publicKeyVal, "invalid parameter publickey.");
+        AssertHelper.NotEmpty(signatureVal, "invalid parameter signature.");
+        AssertHelper.NotEmpty(timestampVal, "invalid parameter timestamp.");
+        AssertHelper.NotEmpty(address, "invalid parameter address.");
+        AssertHelper.IsTrue(long.TryParse(timestampVal, out var timestamp) && timestamp > 0,
+            "invalid parameter timestamp value.");
+
+        var publicKey = ByteArrayHelper.HexStringToByteArray(publicKeyVal);
+        var signature = ByteArrayHelper.HexStringToByteArray(signatureVal);
+        var signAddress = Address.FromPublicKey(publicKey);
+
+        var managerAddress = Address.FromPublicKey(publicKey);
+        var userName = string.Empty;
+        var caHash = string.Empty;
+        var caAddressMain = string.Empty;
+        var caAddressSide = new Dictionary<string, string>();
+
+        AssertHelper.IsTrue(CryptoHelper.RecoverPublicKey(signature,
+            HashHelper.ComputeFrom(string.Join("-", address, timestampVal)).ToByteArray(),
+            out var managerPublicKey), "Invalid signature.");
+        AssertHelper.IsTrue(managerPublicKey.ToHex() == publicKeyVal, "Invalid publicKey or signature.");
+
+        var time = DateTime.UnixEpoch.AddMilliseconds(timestamp);
+        AssertHelper.IsTrue(
+            time > DateTime.UtcNow.AddMinutes(-_timeRangeOption.CurrentValue.TimeRange) &&
+            time < DateTime.UtcNow.AddMinutes(_timeRangeOption.CurrentValue.TimeRange),
+            "The time should be {} minutes before and after the current time.",
+            _timeRangeOption.CurrentValue.TimeRange);
+
+        if (source == SourcePortkey)
         {
-            var publicKeyVal = context.Request.GetParameter("publickey").ToString();
-            var signatureVal = context.Request.GetParameter("signature").ToString();
-            var timestampVal = context.Request.GetParameter("timestamp").ToString();
-            var address = context.Request.GetParameter("address").ToString();
-            var source = context.Request.GetParameter("source").ToString();
-
-            AssertHelper.NotEmpty(source, "invalid parameter source.");
-            AssertHelper.NotEmpty(publicKeyVal, "invalid parameter publickey.");
-            AssertHelper.NotEmpty(signatureVal, "invalid parameter signature.");
-            AssertHelper.NotEmpty(timestampVal, "invalid parameter timestamp.");
-            AssertHelper.NotEmpty(address, "invalid parameter address.");
-            AssertHelper.IsTrue(long.TryParse(timestampVal, out var timestamp) && timestamp > 0,
-                "invalid parameter timestamp value.");
-
-            var publicKey = ByteArrayHelper.HexStringToByteArray(publicKeyVal);
-            var signature = ByteArrayHelper.HexStringToByteArray(signatureVal);
-            var signAddress = Address.FromPublicKey(publicKey);
-
-            var managerAddress = Address.FromPublicKey(publicKey);
-            var userName = string.Empty;
-            var caHash = string.Empty;
-            var caAddressMain = string.Empty;
-            var caAddressSide = new Dictionary<string, string>();
-
-            AssertHelper.IsTrue(CryptoHelper.RecoverPublicKey(signature,
-                HashHelper.ComputeFrom(string.Join("-", address, timestampVal)).ToByteArray(),
-                out var managerPublicKey), "Invalid signature.");
-            AssertHelper.IsTrue(managerPublicKey.ToHex() == publicKeyVal, "Invalid publicKey or signature.");
-
-            var time = DateTime.UnixEpoch.AddMilliseconds(timestamp);
+            var portkeyUrl = _graphQlOption.CurrentValue.PortkeyUrl;
+            var caHolderInfos = await GetCaHolderInfo(portkeyUrl, managerAddress.ToBase58());
+            AssertHelper.NotNull(caHolderInfos, "CaHolder not found.");
+            AssertHelper.NotEmpty(caHolderInfos.CaHolderManagerInfo, "CaHolder manager not found.");
             AssertHelper.IsTrue(
-                time > DateTime.UtcNow.AddMinutes(-_timeRangeOption.CurrentValue.TimeRange) &&
-                time < DateTime.UtcNow.AddMinutes(_timeRangeOption.CurrentValue.TimeRange),
-                "The time should be {} minutes before and after the current time.",
-                _timeRangeOption.CurrentValue.TimeRange);
+                caHolderInfos.CaHolderManagerInfo.Select(m => m.CaAddress).Any(add => add == address),
+                "PublicKey not manager of address");
 
-            if (source == SourcePortkey)
+            //Find caHash by caAddress
+            foreach (var account in caHolderInfos.CaHolderManagerInfo)
             {
-                var portkeyUrl = _graphQlOption.CurrentValue.PortkeyUrl;
-                var caHolderInfos = await GetCaHolderInfo(portkeyUrl, managerAddress.ToBase58());
-                AssertHelper.NotNull(caHolderInfos, "CaHolder not found.");
-                AssertHelper.NotEmpty(caHolderInfos.CaHolderManagerInfo, "CaHolder manager not found.");
-                AssertHelper.IsTrue(
-                    caHolderInfos.CaHolderManagerInfo.Select(m => m.CaAddress).Any(add => add == address),
-                    "PublicKey not manager of address");
-
-                //Find caHash by caAddress
-                foreach (var account in caHolderInfos.CaHolderManagerInfo)
+                caHash = caHolderInfos.CaHolderManagerInfo[0].CaHash;
+                if (account.ChainId == CommonConstant.MainChainId)
                 {
-                    caHash = caHolderInfos.CaHolderManagerInfo[0].CaHash;
-                    if (account.ChainId == CommonConstant.MainChainId)
-                    {
-                        caAddressMain = account.CaAddress;
-                    }
-                    else
-                    {
-                        caAddressSide.TryAdd(account.ChainId, account.CaAddress);
-                    }
+                    caAddressMain = account.CaAddress;
                 }
-                userName = caHash;
-            }
-            else if (source == SourceNightAElf)
-            {
-                AssertHelper.IsTrue(address == signAddress.ToBase58(), "Invalid address or pubkey");
-                userName = address;
-            } 
-            else
-            {
-                throw new UserFriendlyException("Source not support.");
-            }
-
-            var user = await _userManager.FindByNameAsync(userName!);
-            if (user == null)
-            {
-                var userId = Guid.NewGuid();
-                var createUserResult = await CreateUserAsync(_userManager, _userInformationProvider, userId,
-                    address!, caHash, caAddressMain, caAddressSide);
-                AssertHelper.IsTrue(createUserResult, "Create user failed.");
-                user = await _userManager.GetByIdAsync(userId);
-            }
-            else
-            {
-                var userSourceInput = new UserGrainDto
+                else
                 {
-                    Id = user.Id,
-                    AelfAddress = caAddressMain,
-                    CaHash = caHash,
-                    CaAddressMain = caAddressMain,
-                    CaAddressSide = caAddressSide,
-                };
-                await _userInformationProvider.SaveUserSourceAsync(userSourceInput);
+                    caAddressSide.TryAdd(account.ChainId, account.CaAddress);
+                }
             }
 
-            var userClaimsPrincipalFactory = context.HttpContext.RequestServices
-                .GetRequiredService<Microsoft.AspNetCore.Identity.IUserClaimsPrincipalFactory<IdentityUser>>();
-            var signInManager = context.HttpContext.RequestServices
-                .GetRequiredService<Microsoft.AspNetCore.Identity.SignInManager<IdentityUser>>();
-            var principal = await signInManager.CreateUserPrincipalAsync(user);
-            var claimsPrincipal = await userClaimsPrincipalFactory.CreateAsync(user);
-            claimsPrincipal.SetScopes("PointsServer");
-            claimsPrincipal.SetResources(await GetResourcesAsync(context, principal.GetScopes()));
-            claimsPrincipal.SetAudiences("PointsServer");
-            await context.HttpContext.RequestServices.GetRequiredService<AbpOpenIddictClaimDestinationsManager>()
-                .SetAsync(principal);
-            return new SignInResult(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, claimsPrincipal);
+            userName = caHash;
         }
-        catch (UserFriendlyException e)
+        else if (source == SourceNightAElf)
         {
-            _logger.LogWarning("Create token failed: {Message}", e.Message);
-            return ForbidResult(OpenIddictConstants.Errors.InvalidRequest, e.Message);
+            AssertHelper.IsTrue(address == signAddress.ToBase58(), "Invalid address or pubkey");
+            userName = address;
         }
-        catch (Exception e)
+        else
         {
-            _logger.LogError(e, "Create token error");
-            return ForbidResult(OpenIddictConstants.Errors.ServerError, "Internal error.");
+            throw new UserFriendlyException("Source not support.");
         }
-    }
 
-    private static ForbidResult ForbidResult(string errorType, string errorDescription)
-    {
-        return new ForbidResult(
-            new[] { OpenIddictServerAspNetCoreDefaults.AuthenticationScheme },
-            properties: new AuthenticationProperties(new Dictionary<string, string>
+        var user = await _userManager.FindByNameAsync(userName!);
+        if (user == null)
+        {
+            var userId = Guid.NewGuid();
+            var createUserResult = await CreateUserAsync(_userManager, _userInformationProvider, userId,
+                address!, caHash, caAddressMain, caAddressSide);
+            AssertHelper.IsTrue(createUserResult, "Create user failed.");
+            user = await _userManager.GetByIdAsync(userId);
+        }
+        else
+        {
+            var userSourceInput = new UserGrainDto
             {
-                [OpenIddictServerAspNetCoreConstants.Properties.Error] = errorType,
-                [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = errorDescription
-            }!));
+                Id = user.Id,
+                AelfAddress = caAddressMain,
+                CaHash = caHash,
+                CaAddressMain = caAddressMain,
+                CaAddressSide = caAddressSide,
+            };
+            await _userInformationProvider.SaveUserSourceAsync(userSourceInput);
+        }
+
+        var userClaimsPrincipalFactory = context.HttpContext.RequestServices
+            .GetRequiredService<Microsoft.AspNetCore.Identity.IUserClaimsPrincipalFactory<IdentityUser>>();
+        var signInManager = context.HttpContext.RequestServices
+            .GetRequiredService<Microsoft.AspNetCore.Identity.SignInManager<IdentityUser>>();
+        var principal = await signInManager.CreateUserPrincipalAsync(user);
+        var claimsPrincipal = await userClaimsPrincipalFactory.CreateAsync(user);
+        principal.SetScopes("PointsServer");
+        principal.SetResources(await GetResourcesAsync(context, principal.GetScopes()));
+        principal.SetAudiences("PointsServer");
+        // await context.HttpContext.RequestServices.GetRequiredService<AbpOpenIddictClaimDestinationsManager>()
+        //     .SetAsync(principal);
+        var abpOpenIddictClaimDestinationsManager = context.HttpContext.RequestServices
+            .GetRequiredService<AbpOpenIddictClaimsPrincipalManager>();
+
+        await abpOpenIddictClaimDestinationsManager.HandleAsync(context.Request, principal);
+        return new SignInResult(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, principal);
     }
 
     private async Task<IndexerCAHolderInfos> GetCaHolderInfo(string url, string managerAddress, string? chainId = null)

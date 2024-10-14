@@ -1,3 +1,4 @@
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.DependencyInjection;
 using PointsServer.DApps;
 using PointsServer.Grains;
@@ -22,7 +23,8 @@ namespace PointsServer;
     typeof(AbpTenantManagementApplicationModule),
     typeof(AbpFeatureManagementApplicationModule),
     typeof(PointsServerGrainsModule),
-    typeof(AbpSettingManagementApplicationModule)
+    typeof(AbpSettingManagementApplicationModule),
+    typeof(AOPExceptionModule)
 )]
 public class PointsServerApplicationModule : AbpModule
 {

@@ -1,8 +1,6 @@
 using System;
 using AutoMapper;
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.DependencyInjection;
-using Orleans.Hosting;
 using Orleans.TestingHost;
 using PointsServer.Grains;
 using Volo.Abp.AutoMapper;
@@ -85,5 +83,4 @@ public class ClusterFixture : IDisposable, ISingletonDependency
     {
         public IMapper Mapper { get; set; }
     }
-
 }
