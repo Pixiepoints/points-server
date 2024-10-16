@@ -1,6 +1,7 @@
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
-using Orleans;
 using PointsServer.Common;
+using PointsServer.Grains.Exceptions;
 using PointsServer.Grains.State.Points;
 using Volo.Abp.ObjectMapping;
 
@@ -29,45 +30,39 @@ public class OperatorPointActionSumGrain : Grain<OperatorPointActionSumState>, I
     //     await base.OnDeactivateAsync();
     // }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
+        MethodName = nameof(ExceptionHandlingService.HandleException), ReturnDefault = ReturnDefault.New,
+        LogTargets = ["grainDto"], Message = "UpdatePointsActionSumAsync error")]
     public async Task<GrainResultDto<OperatorPointActionSumGrainDto>> UpdatePointsActionSumAsync(
         OperatorPointActionSumGrainDto grainDto)
     {
         var result = new GrainResultDto<OperatorPointActionSumGrainDto>();
 
-        try
+        if (!State.Id.IsNullOrEmpty())
         {
-            if (!State.Id.IsNullOrEmpty())
-            {
-                _logger.LogInformation("Add point");
-                State.Amount += grainDto.Amount;
-                State.UpdateTime = grainDto.UpdateTime;
-            }
-            else
-            {
-                var nowMillisecond = DateTime.UtcNow.ToUtcMilliSeconds();
-                State.Id = this.GetPrimaryKeyString();
-                State.Domain = grainDto.Domain;
-                State.DappName = grainDto.DappName;
-                State.Address = grainDto.Address;
-                State.Role = grainDto.Role;
-                State.RecordAction = grainDto.RecordAction;
-                State.Amount = grainDto.Amount;
-                State.CreateTime = nowMillisecond;
-                State.UpdateTime = nowMillisecond;
-            }
-
-
-            await WriteStateAsync();
-
-            result.Success = true;
-            result.Data = _objectMapper.Map<OperatorPointActionSumState, OperatorPointActionSumGrainDto>(State);
-            return result;
+            _logger.LogInformation("Add point");
+            State.Amount += grainDto.Amount;
+            State.UpdateTime = grainDto.UpdateTime;
         }
-        catch (Exception e)
+        else
         {
-            _logger.LogError(e, "add PointsRecord error, Address:{Address}", grainDto.Address);
-            result.Message = e.Message;
-            return result;
+            var nowMillisecond = DateTime.UtcNow.ToUtcMilliSeconds();
+            State.Id = this.GetPrimaryKeyString();
+            State.Domain = grainDto.Domain;
+            State.DappName = grainDto.DappName;
+            State.Address = grainDto.Address;
+            State.Role = grainDto.Role;
+            State.RecordAction = grainDto.RecordAction;
+            State.Amount = grainDto.Amount;
+            State.CreateTime = nowMillisecond;
+            State.UpdateTime = nowMillisecond;
         }
+
+
+        await WriteStateAsync();
+
+        result.Success = true;
+        result.Data = _objectMapper.Map<OperatorPointActionSumState, OperatorPointActionSumGrainDto>(State);
+        return result;
     }
 }

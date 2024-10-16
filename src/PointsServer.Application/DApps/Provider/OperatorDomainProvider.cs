@@ -36,7 +36,7 @@ public class OperatorDomainProvider : IOperatorDomainProvider, ISingletonDepende
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
         MethodName = nameof(ExceptionHandlingService.HandleException), ReturnDefault = ReturnDefault.New,
-        Message = "GetOperatorDomainIndexAsync error")]
+        LogTargets = ["domain", "getDescribe"], Message = "GetOperatorDomainIndexAsync error")]
     public virtual async Task<OperatorDomainDto> GetOperatorDomainIndexAsync(string domain, bool getDescribe)
     {
         if (string.IsNullOrWhiteSpace(domain))
@@ -76,7 +76,7 @@ public class OperatorDomainProvider : IOperatorDomainProvider, ISingletonDepende
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
         MethodName = nameof(ExceptionHandlingService.HandleException), ReturnDefault = ReturnDefault.New,
-        Message = "GetIndexerOperatorDomainInfoAsync error")]
+        LogTargets = ["domain"], Message = "GetIndexerOperatorDomainInfoAsync error")]
     protected virtual async Task<OperatorDomainDto> GetIndexerOperatorDomainInfoAsync(string domain)
     {
         var indexerResult = await _graphQlHelper.QueryAsync<OperatorDomainIndexerQueryDto>(new GraphQLRequest

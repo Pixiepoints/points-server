@@ -1,6 +1,7 @@
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
-using Orleans;
 using PointsServer.Common;
+using PointsServer.Grains.Exceptions;
 using PointsServer.Grains.State.Operator;
 using Volo.Abp.ObjectMapping;
 
@@ -29,41 +30,35 @@ public class OperatorDomainGrain : Grain<OperatorDomainState>, IOperatorDomainGr
     //     await base.OnDeactivateAsync();
     // }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
+        MethodName = nameof(ExceptionHandlingService.HandleException), ReturnDefault = ReturnDefault.New,
+        LogTargets = ["dto"], Message = "AddOperatorDomainAsync error")]
     public async Task<GrainResultDto<OperatorDomainGrainDto>> AddOperatorDomainAsync(OperatorDomainGrainDto dto)
     {
         var result = new GrainResultDto<OperatorDomainGrainDto>();
 
-        try
+        if (!State.Id.IsNullOrEmpty())
         {
-            if (!State.Id.IsNullOrEmpty())
-            {
-                result.Message = "OperatorDomain already exists.";
-                return result;
-            }
-
-            State.Id = this.GetPrimaryKeyString();
-            State.Address = dto.Address;
-            State.InviterAddress = dto.InviterAddress;
-            State.Role = dto.Role;
-            State.Status = dto.Status;
-            State.Domain = dto.Domain;
-            State.Icon = dto.Icon;
-            State.DappName = dto.DappName;
-            State.Descibe = dto.Descibe;
-            State.ApplyTime = dto.ApplyTime;
-
-            await WriteStateAsync();
-
-            result.Success = true;
-            result.Data = _objectMapper.Map<OperatorDomainState, OperatorDomainGrainDto>(State);
+            result.Message = "OperatorDomain already exists.";
             return result;
         }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "add InvitationRelationships error, Address:{Address}", dto.Address);
-            result.Message = e.Message;
-            return result;
-        }
+
+        State.Id = this.GetPrimaryKeyString();
+        State.Address = dto.Address;
+        State.InviterAddress = dto.InviterAddress;
+        State.Role = dto.Role;
+        State.Status = dto.Status;
+        State.Domain = dto.Domain;
+        State.Icon = dto.Icon;
+        State.DappName = dto.DappName;
+        State.Descibe = dto.Descibe;
+        State.ApplyTime = dto.ApplyTime;
+
+        await WriteStateAsync();
+
+        result.Success = true;
+        result.Data = _objectMapper.Map<OperatorDomainState, OperatorDomainGrainDto>(State);
+        return result;
     }
 
     public async Task UpdateApplyStatusAsync(ApplyStatus status)

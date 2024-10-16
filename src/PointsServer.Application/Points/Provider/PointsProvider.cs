@@ -58,7 +58,7 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
         MethodName = nameof(ExceptionHandlingService.HandleException), ReturnDefault = ReturnDefault.New,
-        Message = "GetOperatorPointsSumIndexListAsync error")]
+        LogTargets = ["input"], Message = "GetOperatorPointsSumIndexListAsync error")]
     public virtual async Task<PointsSumIndexerListDto> GetOperatorPointsSumIndexListAsync(
         GetOperatorPointsSumIndexListInput input)
     {
@@ -101,7 +101,7 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
         MethodName = nameof(ExceptionHandlingService.HandleException), ReturnDefault = ReturnDefault.New,
-        Message = "GetOperatorPointsSumIndexListByAddressAsync error")]
+        LogTargets = ["input"], Message = "GetOperatorPointsSumIndexListByAddressAsync error")]
     public virtual async Task<PointsSumIndexerListDto> GetOperatorPointsSumIndexListByAddressAsync(
         GetOperatorPointsSumIndexListByAddressInput input)
     {
@@ -250,8 +250,8 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
     }
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
-        MethodName = nameof(ExceptionHandlingService.HandleException), ReturnDefault = ReturnDefault.None,
-        Message = "GetOperatorDomainInfoAsync error")]
+        MethodName = nameof(ExceptionHandlingService.HandleException), LogOnly = true,
+        LogTargets = ["queryInput"], Message = "GetOperatorDomainInfoAsync error")]
     public virtual async Task<OperatorDomainDto> GetOperatorDomainInfoAsync(GetOperatorDomainInfoInput queryInput)
     {
         var indexerResult = await _graphQlHelper.QueryAsync<OperatorDomainIndexerQueryDto>(new GraphQLRequest
@@ -277,8 +277,9 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
         MethodName = nameof(ExceptionHandlingService.HandleException), ReturnDefault = ReturnDefault.New,
-        Message = "GetUserReferralCountAsync error")]
-    public virtual async Task<List<UserReferralCountDto>> GetUserReferralCountAsync(List<string> addressList, int skipCount,
+        LogTargets = ["addressList"], Message = "GetUserReferralCountAsync error")]
+    public virtual async Task<List<UserReferralCountDto>> GetUserReferralCountAsync(List<string> addressList,
+        int skipCount,
         int maxResultCount)
     {
         var indexerResult = await _graphQlHelper.QueryAsync<UserReferralCountResultDto>(new GraphQLRequest
@@ -332,7 +333,7 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
         MethodName = nameof(ExceptionHandlingService.HandleException), ReturnDefault = ReturnDefault.New,
-        Message = "GetUserReferralRecordsAsync error")]
+        LogTargets = ["addressList"], Message = "GetUserReferralRecordsAsync error")]
     public virtual async Task<List<UserReferralDto>> GetUserReferralRecordsAsync(List<string> addressList,
         long skipCount = 0, long maxResultCount = 1000)
     {
@@ -362,7 +363,7 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
         MethodName = nameof(ExceptionHandlingService.HandleException), ReturnDefault = ReturnDefault.New,
-        Message = "GetPointsSumListAsync error")]
+        LogTargets = ["input"], Message = "GetPointsSumListAsync error")]
     public virtual async Task<List<PointsSumAllIndexerDto>> GetPointsSumListAsync(GetPointsListInput input)
     {
         var indexerResult = await _graphQlHelper.QueryAsync<IndexerPointsSumListQueryDto>(new GraphQLRequest
@@ -411,7 +412,7 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
         MethodName = nameof(ExceptionHandlingService.HandleException), ReturnDefault = ReturnDefault.New,
-        Message = "GetOperatorDomainListAsync error")]
+        LogTargets = ["dappId", "addressList"], Message = "GetOperatorDomainListAsync error")]
     public virtual async Task<List<OperatorDomainDto>> GetOperatorDomainListAsync(string dappId,
         List<string> addressList, long skipCount = 0, long maxResultCount = 1000)
     {

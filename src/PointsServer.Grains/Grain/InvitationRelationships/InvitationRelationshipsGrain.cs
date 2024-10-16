@@ -1,5 +1,6 @@
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
-using Orleans;
+using PointsServer.Grains.Exceptions;
 using PointsServer.Grains.State.InvitationRelationships;
 using Volo.Abp.ObjectMapping;
 
@@ -28,38 +29,32 @@ public class InvitationRelationshipsGrain : Grain<InvitationRelationshipsState>,
     //     await base.OnDeactivateAsync();
     // }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
+        MethodName = nameof(ExceptionHandlingService.HandleException), ReturnDefault = ReturnDefault.New,
+        LogTargets = ["dto"], Message = "AddInvitationRelationshipsAsync error")]
     public async Task<GrainResultDto<InvitationRelationshipsGrainDto>> AddInvitationRelationshipsAsync(
         InvitationRelationshipsGrainDto dto)
     {
         var result = new GrainResultDto<InvitationRelationshipsGrainDto>();
 
-        try
+        if (!State.Id.IsNullOrEmpty())
         {
-            if (!State.Id.IsNullOrEmpty())
-            {
-                result.Message = "InvitationRelationships already exists.";
-                return result;
-            }
-
-            State.Id = this.GetPrimaryKeyString();
-            State.Address = dto.Address;
-            State.OperatorAddress = dto.OperatorAddress;
-            State.InviterAddress = dto.InviterAddress;
-            State.DappName = dto.DappName;
-            State.Domain = dto.Domain;
-            State.InviteTime = dto.InviteTime.Millisecond;
-
-            await WriteStateAsync();
-
-            result.Success = true;
-            result.Data = _objectMapper.Map<InvitationRelationshipsState, InvitationRelationshipsGrainDto>(State);
+            result.Message = "InvitationRelationships already exists.";
             return result;
         }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "add InvitationRelationships error, Address:{Address}", dto.Address);
-            result.Message = e.Message;
-            return result;
-        }
+
+        State.Id = this.GetPrimaryKeyString();
+        State.Address = dto.Address;
+        State.OperatorAddress = dto.OperatorAddress;
+        State.InviterAddress = dto.InviterAddress;
+        State.DappName = dto.DappName;
+        State.Domain = dto.Domain;
+        State.InviteTime = dto.InviteTime.Millisecond;
+
+        await WriteStateAsync();
+
+        result.Success = true;
+        result.Data = _objectMapper.Map<InvitationRelationshipsState, InvitationRelationshipsGrainDto>(State);
+        return result;
     }
 }

@@ -60,11 +60,11 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
     public string Name { get; } = "signature";
 
     [ExceptionHandler([typeof(UserFriendlyException)], TargetType = typeof(ExceptionHandlingService),
-        MethodName = nameof(ExceptionHandlingService.HandleExceptionWithInvalidRequest),
-        Message = "SignatureGrantHandler HandleAsync error")]
+        MethodName = nameof(ExceptionHandlingService.HandleExceptionWithInvalidRequest), LogTargets = ["context"],
+        Message = "SignatureGrantHandler error")]
     [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
-        MethodName = nameof(ExceptionHandlingService.HandleExceptionWithServerError),
-        Message = "SignatureGrantHandler HandleAsync error")]
+        MethodName = nameof(ExceptionHandlingService.HandleExceptionWithServerError), LogTargets = ["context"],
+        Message = "SignatureGrantHandler error")]
     public virtual async Task<IActionResult> HandleAsync(ExtensionGrantContext context)
     {
         var publicKeyVal = context.Request.GetParameter("publickey").ToString();

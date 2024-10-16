@@ -377,7 +377,7 @@ public class PointsService : IPointsService, ISingletonDependency
 
     [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
         MethodName = nameof(ExceptionHandlingService.HandleException), ReturnDefault = ReturnDefault.New,
-        Message = "GetDisplayNameAsync error")]
+        LogTargets = ["dappName", "actionPoints"], Message = "GetDisplayNameAsync error")]
     protected virtual async Task<string> GetDisplayNameAsync(string dappName, ActionPoints actionPoints)
     {
         PointsRules pointsRules;
