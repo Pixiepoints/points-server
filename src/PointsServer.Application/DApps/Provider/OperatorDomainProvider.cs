@@ -43,7 +43,7 @@ public class OperatorDomainProvider : IOperatorDomainProvider, ISingletonDepende
 
             var indexerOperatorDomainInfo = await GetIndexerOperatorDomainInfoAsync(domain);
 
-            if (indexerOperatorDomainInfo == null)
+            if (indexerOperatorDomainInfo?.Id == null)
             {
                 return null;
             }
