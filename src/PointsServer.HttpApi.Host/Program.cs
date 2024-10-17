@@ -30,10 +30,10 @@ namespace PointsServer
                 var builder = WebApplication.CreateBuilder(args);
                 builder.Configuration.AddJsonFile("apollo.appsettings.json");
                 builder.Host.AddAppSettingsSecretsJson()
-                    .UseOrleansClient()
                     .UseApollo()
                     .UseAutofac()
-                    .UseSerilog();
+                    .UseSerilog()
+                    .UseOrleansClient();
 
                 await builder.AddApplicationAsync<PointsServerHttpApiHostModule>();
                 var app = builder.Build();

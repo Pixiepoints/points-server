@@ -39,10 +39,10 @@ public class Program
             var builder = WebApplication.CreateBuilder(args);
             builder.Configuration.AddJsonFile("apollo.appsettings.json");
             builder.Host.AddAppSettingsSecretsJson()
-                .UseOrleansClient()
                 .UseAutofac()
                 .UseApollo()
-                .UseSerilog();
+                .UseSerilog()
+                .UseOrleansClient();
             await builder.AddApplicationAsync<PointsServerAuthServerModule>();
             var app = builder.Build();
             await app.InitializeApplicationAsync();

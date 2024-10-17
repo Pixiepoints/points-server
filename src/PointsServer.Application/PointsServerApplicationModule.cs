@@ -23,8 +23,7 @@ namespace PointsServer;
     typeof(AbpTenantManagementApplicationModule),
     typeof(AbpFeatureManagementApplicationModule),
     typeof(PointsServerGrainsModule),
-    typeof(AbpSettingManagementApplicationModule),
-    typeof(AOPExceptionModule)
+    typeof(AbpSettingManagementApplicationModule)
 )]
 public class PointsServerApplicationModule : AbpModule
 {
