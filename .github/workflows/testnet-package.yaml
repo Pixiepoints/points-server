@@ -8,10 +8,10 @@ env:
 
 jobs:
   publish:
-    runs-on: ecoearn-runner # this is the self-hosted runner name after it is being setup
+    runs-on: points-server-runner # this is the self-hosted runner name after it is being setup
     strategy:
       matrix:
-        servicename: [EcoEarnServer.HttpApi.Host, EcoEarnServer.Silo, EcoEarnServer.EntityEventHandler, EcoEarnServer.AuthServer,EcoEarnServer.Background] # This should be the app that needs to be deploy.
+        servicename: [PointsServer.HttpApi.Host, PointsServer.Silo, PointsServer.EntityEventHandler, PointsServer.AuthServer] # This should be the app that needs to be deploy.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -26,10 +26,10 @@ jobs:
           retention-days: 1
   build-and-push-image:
     needs: publish
-    runs-on: ecoearn-runner # this is the self-hosted runner name after it is being setup
+    runs-on: points-server-runner # this is the self-hosted runner name after it is being setup
     strategy:
       matrix:
-        servicename: [EcoEarnServer.HttpApi.Host, EcoEarnServer.Silo, EcoEarnServer.EntityEventHandler, EcoEarnServer.AuthServer,EcoEarnServer.Background] # This should be the list of app that needs to be deploy.
+        servicename: [PointsServer.HttpApi.Host, PointsServer.Silo, PointsServer.EntityEventHandler, PointsServer.AuthServer] # This should be the list of app that needs to be deploy.
     permissions:
       contents: read
     outputs:
