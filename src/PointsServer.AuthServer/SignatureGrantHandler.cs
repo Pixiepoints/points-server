@@ -88,7 +88,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
             var newSignText = """
                               Welcome to PixiePoints! Click to connect wallet to and accept its Terms of Service and Privacy Policy. This request will not trigger a blockchain transaction or cost any gas fees.
 
-                              signature:
+                              signature: 
                               """ + string.Join("-", address, timestampVal);
 
             var managerAddress = Address.FromPublicKey(publicKey);
@@ -117,13 +117,17 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
 
             if (source == SourcePortkey)
             {
+                var manager = managerAddress.ToBase58();
                 var portkeyUrl = _graphQlOption.CurrentValue.PortkeyUrl;
-                var caHolderInfos = await GetCaHolderInfo(portkeyUrl, managerAddress.ToBase58());
+                var caHolderInfos = await GetCaHolderInfo(portkeyUrl, manager);
                 AssertHelper.NotNull(caHolderInfos, "CaHolder not found.");
                 AssertHelper.NotEmpty(caHolderInfos.CaHolderManagerInfo, "CaHolder manager not found.");
-                AssertHelper.IsTrue(
-                    caHolderInfos.CaHolderManagerInfo.Select(m => m.CaAddress).Any(add => add == address),
-                    "PublicKey not manager of address");
+                if (caHolderInfos.CaHolderManagerInfo.Select(m => m.CaAddress).All(add => add != address))
+                {
+                    var caHolderManagerInfo = await GetCaHolderManagerInfoAsync(manager);
+                    AssertHelper.IsTrue(caHolderManagerInfo != null && caHolderManagerInfo.CaAddress == address,
+                        "PublicKey not manager of address");
+                }
 
                 //Find caHash by caAddress
                 foreach (var account in caHolderInfos.CaHolderManagerInfo)
