@@ -859,7 +859,17 @@ public class PointsService : IPointsService, ISingletonDependency
         var taskResults = await Task.WhenAll(tasks);
         foreach (var result in taskResults)
         {
-            kolFollowersCountDic.AddIfNotContains(result);
+            foreach (var item in result)
+            {
+                if (kolFollowersCountDic.TryGetValue(item.Key, out var value))
+                {
+                    value.AddRange(item.Value);
+                }
+                else
+                {
+                    kolFollowersCountDic.Add(item.Key, item.Value);
+                }
+            }
         }
 
         return kolFollowersCountDic;
