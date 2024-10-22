@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using AElf;
 using AElf.Cryptography;
@@ -17,6 +19,7 @@ using Microsoft.Extensions.Options;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using PointsServer.Common;
+using PointsServer.Common.HttpClient;
 using PointsServer.Dto;
 using PointsServer.Options;
 using PointsServer.Users;
@@ -38,6 +41,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
     private readonly IdentityUserManager _userManager;
     private readonly IOptionsMonitor<TimeRangeOption> _timeRangeOption;
     private readonly IOptionsMonitor<GraphQLOption> _graphQlOption;
+    private readonly IHttpProvider _httpProvider;
 
     private const string LockKeyPrefix = "PointsServer:Auth:SignatureGrantHandler:";
     private const string SourcePortkey = "portkey";
@@ -46,7 +50,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
     public SignatureGrantHandler(IUserInformationProvider userInformationProvider,
         ILogger<SignatureGrantHandler> logger, IAbpDistributedLock distributedLock,
         IdentityUserManager userManager, IOptionsMonitor<TimeRangeOption> timeRangeOption,
-        IOptionsMonitor<GraphQLOption> graphQlOption)
+        IOptionsMonitor<GraphQLOption> graphQlOption, IHttpProvider httpProvider)
     {
         _userInformationProvider = userInformationProvider;
         _logger = logger;
@@ -54,6 +58,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
         _userManager = userManager;
         _timeRangeOption = timeRangeOption;
         _graphQlOption = graphQlOption;
+        _httpProvider = httpProvider;
     }
 
     public string Name { get; } = "signature";
@@ -80,6 +85,12 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
             var signature = ByteArrayHelper.HexStringToByteArray(signatureVal);
             var signAddress = Address.FromPublicKey(publicKey);
 
+            var newSignText = """
+                              Welcome to PixiePoints! Click to connect wallet to and accept its Terms of Service and Privacy Policy. This request will not trigger a blockchain transaction or cost any gas fees.
+
+                              signature: 
+                              """ + string.Join("-", address, timestampVal);
+
             var managerAddress = Address.FromPublicKey(publicKey);
             var userName = string.Empty;
             var caHash = string.Empty;
@@ -87,9 +98,15 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
             var caAddressSide = new Dictionary<string, string>();
 
             AssertHelper.IsTrue(CryptoHelper.RecoverPublicKey(signature,
-                HashHelper.ComputeFrom(string.Join("-", address, timestampVal)).ToByteArray(),
+                HashHelper.ComputeFrom(Encoding.UTF8.GetBytes(newSignText).ToHex()).ToByteArray(),
                 out var managerPublicKey), "Invalid signature.");
-            AssertHelper.IsTrue(managerPublicKey.ToHex() == publicKeyVal, "Invalid publicKey or signature.");
+
+            AssertHelper.IsTrue(CryptoHelper.RecoverPublicKey(signature,
+                HashHelper.ComputeFrom(string.Join("-", address, timestampVal)).ToByteArray(),
+                out var managerPublicKeyOld), "Invalid signature.");
+            AssertHelper.IsTrue(managerPublicKey.ToHex() == publicKeyVal || managerPublicKeyOld.ToHex() == publicKeyVal,
+                "Invalid publicKey or signature.");
+
 
             var time = DateTime.UnixEpoch.AddMilliseconds(timestamp);
             AssertHelper.IsTrue(
@@ -100,13 +117,17 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
 
             if (source == SourcePortkey)
             {
+                var manager = managerAddress.ToBase58();
                 var portkeyUrl = _graphQlOption.CurrentValue.PortkeyUrl;
-                var caHolderInfos = await GetCaHolderInfo(portkeyUrl, managerAddress.ToBase58());
+                var caHolderInfos = await GetCaHolderInfo(portkeyUrl, manager);
                 AssertHelper.NotNull(caHolderInfos, "CaHolder not found.");
                 AssertHelper.NotEmpty(caHolderInfos.CaHolderManagerInfo, "CaHolder manager not found.");
-                AssertHelper.IsTrue(
-                    caHolderInfos.CaHolderManagerInfo.Select(m => m.CaAddress).Any(add => add == address),
-                    "PublicKey not manager of address");
+                if (caHolderInfos.CaHolderManagerInfo.Select(m => m.CaAddress).All(add => add != address))
+                {
+                    var caHolderManagerInfo = await GetCaHolderManagerInfoAsync(manager);
+                    AssertHelper.IsTrue(caHolderManagerInfo != null && caHolderManagerInfo.CaAddress == address,
+                        "PublicKey not manager of address");
+                }
 
                 //Find caHash by caAddress
                 foreach (var account in caHolderInfos.CaHolderManagerInfo)
@@ -121,13 +142,14 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
                         caAddressSide.TryAdd(account.ChainId, account.CaAddress);
                     }
                 }
+
                 userName = caHash;
             }
             else if (source == SourceNightAElf)
             {
                 AssertHelper.IsTrue(address == signAddress.ToBase58(), "Invalid address or pubkey");
                 userName = address;
-            } 
+            }
             else
             {
                 throw new UserFriendlyException("Source not support.");
@@ -221,7 +243,37 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
         };
 
         var graphQlResponse = await graphQlClient.SendQueryAsync<IndexerCAHolderInfos>(graphQlRequest);
-        return graphQlResponse.Data;
+        var indexerCaHolderInfos = graphQlResponse.Data;
+        if (!indexerCaHolderInfos.CaHolderManagerInfo.IsNullOrEmpty())
+        {
+            return indexerCaHolderInfos;
+        }
+
+        var caHolderManagerInfo = await GetCaHolderManagerInfoAsync(managerAddress);
+        if (caHolderManagerInfo != null)
+        {
+            indexerCaHolderInfos.CaHolderManagerInfo.Add(caHolderManagerInfo);
+        }
+
+        return indexerCaHolderInfos;
+    }
+
+    private async Task<CAHolderManager?> GetCaHolderManagerInfoAsync(string manager)
+    {
+        var portkeyCaHolderInfoUrl = _graphQlOption.CurrentValue.PortkeyCaHolderInfoUrl;
+
+        var apiInfo = new ApiInfo(HttpMethod.Get, "/api/app/account/manager/check");
+        var param = new Dictionary<string, string> { { "manager", manager } };
+        try
+        {
+            var resp = await _httpProvider.InvokeAsync<CAHolderManager>(portkeyCaHolderInfoUrl, apiInfo, param: param);
+            return resp;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "get ca holder manager info fail.");
+            return null;
+        }
     }
 
     private async Task<bool> CreateUserAsync(IdentityUserManager userManager,
