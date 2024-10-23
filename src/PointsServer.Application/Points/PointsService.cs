@@ -644,6 +644,12 @@ public class PointsService : IPointsService, ISingletonDependency
         }).ToList();
     }
 
+    public async Task<List<PointsListDto>> GetAllPointsListAsync(GetAllPointsListInput input)
+    {
+        var pointsSumIndexerDtos = await _pointsProvider.GetAllPointsListAsync(input);
+        return _objectMapper.Map<List<PointsSumAllIndexerDto>, List<PointsListDto>>(pointsSumIndexerDtos);
+    }
+
     private async Task<Dictionary<string, InviteeNumDto>> GetInviteeNumDic(GetRelationshipInput input)
     {
         var secondLevelFollowersCountDic =

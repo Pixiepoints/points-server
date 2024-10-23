@@ -14,4 +14,5 @@ public interface IPointsService
     Task<MyPointDetailsDto> GetMyPointsAsync(GetMyPointsInput input);
     Task<List<PointsListDto>> GetPointsListAsync(GetPointsListInput input);
     Task<List<RelationshipDto>> GetRelationshipListAsync(GetRelationshipInput input);
+    Task<List<PointsListDto>> GetAllPointsListAsync(GetAllPointsListInput input);
 }
