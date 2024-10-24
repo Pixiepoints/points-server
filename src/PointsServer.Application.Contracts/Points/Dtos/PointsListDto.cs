@@ -22,4 +22,6 @@ public class PointsListDto
     public long UpdateTime { get; set; }
     public int Decimal { get; set; }
     public OperatorRole Role { get; set; }
+    public string Id { get; set; }
+    public long BlockHeight { get; set; }
 }

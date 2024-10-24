@@ -62,4 +62,10 @@ public class PointsController : PointsServerController
     {
         return await _pointsService.GetRelationshipListAsync(input);
     }
+    
+    [HttpPost("all/list")]
+    public async Task<List<PointsListDto>> GetAllPointsListAsync(GetAllPointsListInput input)
+    {
+        return await _pointsService.GetAllPointsListAsync(input);
+    }
 }
