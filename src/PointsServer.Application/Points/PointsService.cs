@@ -46,10 +46,10 @@ public class PointsService : IPointsService, ISingletonDependency
     public async Task<PagedResultDto<RankingListDto>> GetRankingListAsync(GetRankingListInput input)
     {
         _logger.LogInformation("GetRankingListAsync, req:{req}", JsonConvert.SerializeObject(input));
-        if (input != null && !CollectionUtilities.IsNullOrEmpty(input.Keyword))
-        {
-            input.SkipCount = 0;
-        }
+        // if (input != null && !CollectionUtilities.IsNullOrEmpty(input.Keyword))
+        // {
+        //     input.SkipCount = 0;
+        // }
 
         var pointsList = await
             _pointsProvider.GetOperatorPointsSumIndexListAsync(
