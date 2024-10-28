@@ -9,10 +9,10 @@ env:
 
 jobs:
   publish:
-    runs-on: ecoearn-runner # this is the self-hosted runner name after it is being setup
+    runs-on: pixiepoints-runner # this is the self-hosted runner name after it is being setup
     strategy:
       matrix:
-        servicename: [EcoEarnServer.HttpApi.Host, EcoEarnServer.Silo, EcoEarnServer.EntityEventHandler, EcoEarnServer.AuthServer,EcoEarnServer.Background,EcoEarnServer.DbMigrator] # This should be the app that needs to be deploy.
+        servicename: [PointsServer.HttpApi.Host, PointsServer.Silo, PointsServer.EntityEventHandler, PointsServer.AuthServer,PointsServer.DbMigrator] # This should be the app that needs to be deploy.
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -27,27 +27,35 @@ jobs:
           retention-days: 1
   build-and-push-image:
     needs: publish
-    runs-on: ecoearn-runner # this is the self-hosted runner name after it is being setup
+    runs-on: pixiepoints-runner # this is the self-hosted runner name after it is being setup
     strategy:
       matrix:
-        servicename: [EcoEarnServer.HttpApi.Host, EcoEarnServer.Silo, EcoEarnServer.EntityEventHandler, EcoEarnServer.AuthServer,EcoEarnServer.Background,EcoEarnServer.DbMigrator] # This should be the list of app that needs to be deploy.
+        servicename: [PointsServer.HttpApi.Host, PointsServer.Silo, PointsServer.EntityEventHandler, PointsServer.AuthServer,PointsServer.DbMigrator] # This should be the list of app that needs to be deploy.
     permissions:
       contents: read
+    outputs:
+      short_sha: ${{ steps.vars.outputs.short_sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Set short git commit SHA
+        id: vars
+        run: |
+          calculatedSha=$(git rev-parse --short ${{ github.sha }})
+          echo "short_sha=$calculatedSha" >> "$GITHUB_OUTPUT"
       - name: Download a single artifact
         uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.servicename }}
           path: out/${{ matrix.servicename }}
+
       - name: Create image tag
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ${{ secrets.REPOSITORY_REGION }}-docker.pkg.dev/${{ secrets.PROJECT_ID }}/${{ secrets.REPOSITORY }}/${{ matrix.servicename }}
           tags: |
-            type=ref,event=tag
+            type=sha
 
       - # Setting up Docker Buildx with docker-container driver is required
         # at the moment to be able to use a subdirectory with Git context
