@@ -88,7 +88,7 @@ jobs:
               workflow_id: 'deployment_testnet.yaml',
               ref: 'main',
               inputs: {
-                appName: 'pointsserver.backend',
+                appName: 'pointsserver-backend',
                 commit_sha: 'sha-${{ needs.build-and-push-image.outputs.short_sha }}',
               }
             })
