@@ -46,7 +46,7 @@ public class PointsRulesProvider : IPointsRulesProvider, ISingletonDependency
             return null;
         }
 
-        return !actionPointsRulesDic.TryGetValue(action, out var pointsRules) ? null : pointsRules;
+        return !actionPointsRulesDic.TryGetValue(action, out var pointsRules) ? new PointsRules() : pointsRules;
     }
     
     
