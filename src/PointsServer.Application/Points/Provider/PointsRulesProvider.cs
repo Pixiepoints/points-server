@@ -43,15 +43,10 @@ public class PointsRulesProvider : IPointsRulesProvider, ISingletonDependency
         var allPointsRulesDic = await GetAllPointsRulesAsync();
         if (!allPointsRulesDic.TryGetValue(dappName, out var actionPointsRulesDic))
         {
-            throw new Exception("invalid dappName points rules");
+            return null;
         }
 
-        if (!actionPointsRulesDic.TryGetValue(action, out var pointsRules))
-        {
-            throw new Exception("invalid action points rules");
-        }
-
-        return pointsRules;
+        return !actionPointsRulesDic.TryGetValue(action, out var pointsRules) ? null : pointsRules;
     }
     
     
