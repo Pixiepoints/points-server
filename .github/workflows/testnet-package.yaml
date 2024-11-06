@@ -9,11 +9,11 @@ on:
         default: 'PointsServer-Silo'
         type: choice
         options:
-          - PointsServer-Silo
-          - PointsServer-EntityEventHandler
-          - PointsServer-AuthServer
-          - PointsServer-HttpApi-Host
-          - PointsServer-DbMigrator
+          - PointsServer.Silo
+          - PointsServer.EntityEventHandler
+          - PointsServer.AuthServer
+          - PointsServer.HttpApi.Host
+          - PointsServer.DbMigrator
 env:
   DOTNET_INSTALL_DIR: "./.dotnet"
 
@@ -84,19 +84,19 @@ jobs:
         id: map-appname
         run: |
           case "${{ github.event.inputs.servicename }}" in
-            "PointsServer-HttpApi-Host")
+            "PointsServer.HttpApi.Host")
               appName="pointsserver-httpapi-host"
               ;;
-            "PointsServer-EntityEventHandler")
+            "PointsServer.EntityEventHandler")
               appName="pointsserver-entityeventhandler"
               ;;
-            "PointsServer-Silo")
+            "PointsServer.Silo")
               appName="pointsserver-silo"
               ;;
-            "PointsServer-AuthServer")
+            "PointsServer.AuthServer")
               appName="pointsserver-authserver"
               ;;
-            "PointsServer-DbMigrator")
+            "PointsServer.DbMigrator")
               appName="pointsserver-dbmigrator"
               ;;
             *)
