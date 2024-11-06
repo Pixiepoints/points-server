@@ -6,25 +6,25 @@ on:
       servicename:
         description: 'Select service to build and deploy'
         required: true
-        default: 'PointsServer.Silo'
+        default: 'PointsServer-Silo'
         type: choice
         options:
-          - PointsServer.Silo
-          - PointsServer.EntityEventHandler
-          - PointsServer.AuthServer
-          - PointsServer.HttpApi.Host
-          - PointsServer.DbMigrator
+          - PointsServer-Silo
+          - PointsServer-EntityEventHandler
+          - PointsServer-AuthServer
+          - PointsServer-HttpApi-Host
+          - PointsServer-DbMigrator
 env:
   DOTNET_INSTALL_DIR: "./.dotnet"
 
 jobs:
   publish:
-    runs-on: pixiepoints-runner 
+    runs-on: pixiepoints-runner
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '7.0' 
+          dotnet-version: '7.0'
       - run: dotnet publish src/${{ github.event.inputs.servicename}}/${{ github.event.inputs.servicename }}.csproj -o out/${{ github.event.inputs.servicename }}
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -32,7 +32,7 @@ jobs:
           name: ${{ github.event.inputs.servicename }}
           path: out/${{ github.event.inputs.servicename }}
           retention-days: 1
-          
+  
   build-and-push-image:
     needs: publish
     runs-on: pixiepoints-runner
@@ -84,19 +84,19 @@ jobs:
         id: map-appname
         run: |
           case "${{ github.event.inputs.servicename }}" in
-            "PointsServer.HttpApi.Host")
+            "PointsServer-HttpApi-Host")
               appName="pointsserver-httpapi-host"
               ;;
-            "PointsServer.EntityEventHandler")
+            "PointsServer-EntityEventHandler")
               appName="pointsserver-entityeventhandler"
               ;;
-            "PointsServer.Silo")
+            "PointsServer-Silo")
               appName="pointsserver-silo"
               ;;
-            "PointsServer.AuthServer")
+            "PointsServer-AuthServer")
               appName="pointsserver-authserver"
               ;;
-            "PointsServer.DbMigrator")
+            "PointsServer-DbMigrator")
               appName="pointsserver-dbmigrator"
               ;;
             *)
