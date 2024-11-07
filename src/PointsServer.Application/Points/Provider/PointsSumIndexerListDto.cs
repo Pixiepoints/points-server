@@ -48,14 +48,28 @@ public class IndexerPointsSumListQueryDto
     public PointsSumAllIndexerListDto GetPointsSumBySymbol { get; set; }
 }
 
+public class IndexerAllPointsListQueryDto
+{
+    public AllPointsIndexerListDto GetAllPointsList { get; set; }
+}
+
 public class PointsSumAllIndexerListDto
 {
     public long TotalCount { get; set; }
     public List<PointsSumAllIndexerDto> Data { get; set; }
 }
 
+public class AllPointsIndexerListDto
+{
+    public long TotalCount { get; set; }
+    public List<PointsSumAllIndexerDto> Data { get; set; }
+}
+
+
 public class PointsSumAllIndexerDto
 {
+    public string Id { get; set; }
+    public long BlockHeight { get; set; }
     public string Domain { get; set; }
     public string Address { get; set; }
     public string FirstSymbolAmount { get; set; }

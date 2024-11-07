@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 using AElf;
 using AElf.Cryptography;
@@ -17,6 +19,7 @@ using Microsoft.Extensions.Options;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 using PointsServer.Common;
+using PointsServer.Common.HttpClient;
 using PointsServer.Dto;
 using PointsServer.Exceptions;
 using PointsServer.Options;
@@ -39,6 +42,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
     private readonly IdentityUserManager _userManager;
     private readonly IOptionsMonitor<TimeRangeOption> _timeRangeOption;
     private readonly IOptionsMonitor<GraphQLOption> _graphQlOption;
+    private readonly IHttpProvider _httpProvider;
 
     private const string LockKeyPrefix = "PointsServer:Auth:SignatureGrantHandler:";
     private const string SourcePortkey = "portkey";
@@ -47,7 +51,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
     public SignatureGrantHandler(IUserInformationProvider userInformationProvider,
         ILogger<SignatureGrantHandler> logger, IAbpDistributedLock distributedLock,
         IdentityUserManager userManager, IOptionsMonitor<TimeRangeOption> timeRangeOption,
-        IOptionsMonitor<GraphQLOption> graphQlOption)
+        IOptionsMonitor<GraphQLOption> graphQlOption, IHttpProvider httpProvider)
     {
         _userInformationProvider = userInformationProvider;
         _logger = logger;
@@ -55,6 +59,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
         _userManager = userManager;
         _timeRangeOption = timeRangeOption;
         _graphQlOption = graphQlOption;
+        _httpProvider = httpProvider;
     }
 
     public string Name { get; } = "signature";
@@ -85,99 +90,114 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
         var signature = ByteArrayHelper.HexStringToByteArray(signatureVal);
         var signAddress = Address.FromPublicKey(publicKey);
 
-        var managerAddress = Address.FromPublicKey(publicKey);
-        var userName = string.Empty;
-        var caHash = string.Empty;
-        var caAddressMain = string.Empty;
-        var caAddressSide = new Dictionary<string, string>();
+            var newSignText = """
+                              Welcome to PixiePoints! Click to connect wallet to and accept its Terms of Service and Privacy Policy. This request will not trigger a blockchain transaction or cost any gas fees.
 
-        AssertHelper.IsTrue(CryptoHelper.RecoverPublicKey(signature,
-            HashHelper.ComputeFrom(string.Join("-", address, timestampVal)).ToByteArray(),
-            out var managerPublicKey), "Invalid signature.");
-        AssertHelper.IsTrue(managerPublicKey.ToHex() == publicKeyVal, "Invalid publicKey or signature.");
+                              signature: 
+                              """ + string.Join("-", address, timestampVal);
 
-        var time = DateTime.UnixEpoch.AddMilliseconds(timestamp);
-        AssertHelper.IsTrue(
-            time > DateTime.UtcNow.AddMinutes(-_timeRangeOption.CurrentValue.TimeRange) &&
-            time < DateTime.UtcNow.AddMinutes(_timeRangeOption.CurrentValue.TimeRange),
-            "The time should be {} minutes before and after the current time.",
-            _timeRangeOption.CurrentValue.TimeRange);
+            var managerAddress = Address.FromPublicKey(publicKey);
+            var userName = string.Empty;
+            var caHash = string.Empty;
+            var caAddressMain = string.Empty;
+            var caAddressSide = new Dictionary<string, string>();
 
-        if (source == SourcePortkey)
-        {
-            var portkeyUrl = _graphQlOption.CurrentValue.PortkeyUrl;
-            var caHolderInfos = await GetCaHolderInfo(portkeyUrl, managerAddress.ToBase58());
-            AssertHelper.NotNull(caHolderInfos, "CaHolder not found.");
-            AssertHelper.NotEmpty(caHolderInfos.CaHolderManagerInfo, "CaHolder manager not found.");
+            AssertHelper.IsTrue(CryptoHelper.RecoverPublicKey(signature,
+                HashHelper.ComputeFrom(Encoding.UTF8.GetBytes(newSignText).ToHex()).ToByteArray(),
+                out var managerPublicKey), "Invalid signature.");
+
+            AssertHelper.IsTrue(CryptoHelper.RecoverPublicKey(signature,
+                HashHelper.ComputeFrom(string.Join("-", address, timestampVal)).ToByteArray(),
+                out var managerPublicKeyOld), "Invalid signature.");
+            AssertHelper.IsTrue(managerPublicKey.ToHex() == publicKeyVal || managerPublicKeyOld.ToHex() == publicKeyVal,
+                "Invalid publicKey or signature.");
+
+
+            var time = DateTime.UnixEpoch.AddMilliseconds(timestamp);
             AssertHelper.IsTrue(
-                caHolderInfos.CaHolderManagerInfo.Select(m => m.CaAddress).Any(add => add == address),
-                "PublicKey not manager of address");
+                time > DateTime.UtcNow.AddMinutes(-_timeRangeOption.CurrentValue.TimeRange) &&
+                time < DateTime.UtcNow.AddMinutes(_timeRangeOption.CurrentValue.TimeRange),
+                "The time should be {} minutes before and after the current time.",
+                _timeRangeOption.CurrentValue.TimeRange);
 
-            //Find caHash by caAddress
-            foreach (var account in caHolderInfos.CaHolderManagerInfo)
+            if (source == SourcePortkey)
             {
-                caHash = caHolderInfos.CaHolderManagerInfo[0].CaHash;
-                if (account.ChainId == CommonConstant.MainChainId)
+                var manager = managerAddress.ToBase58();
+                var portkeyUrl = _graphQlOption.CurrentValue.PortkeyUrl;
+                var caHolderInfos = await GetCaHolderInfo(portkeyUrl, manager);
+                AssertHelper.NotNull(caHolderInfos, "CaHolder not found.");
+                AssertHelper.NotEmpty(caHolderInfos.CaHolderManagerInfo, "CaHolder manager not found.");
+                if (caHolderInfos.CaHolderManagerInfo.Select(m => m.CaAddress).All(add => add != address))
                 {
-                    caAddressMain = account.CaAddress;
+                    var caHolderManagerInfo = await GetCaHolderManagerInfoAsync(manager);
+                    AssertHelper.IsTrue(caHolderManagerInfo != null && caHolderManagerInfo.CaAddress == address,
+                        "PublicKey not manager of address");
                 }
-                else
+
+                //Find caHash by caAddress
+                foreach (var account in caHolderInfos.CaHolderManagerInfo)
                 {
-                    caAddressSide.TryAdd(account.ChainId, account.CaAddress);
+                    caHash = caHolderInfos.CaHolderManagerInfo[0].CaHash;
+                    if (account.ChainId == CommonConstant.MainChainId)
+                    {
+                        caAddressMain = account.CaAddress;
+                    }
+                    else
+                    {
+                        caAddressSide.TryAdd(account.ChainId, account.CaAddress);
+                    }
                 }
+
+                userName = caHash;
+            }
+            else if (source == SourceNightAElf)
+            {
+                AssertHelper.IsTrue(address == signAddress.ToBase58(), "Invalid address or pubkey");
+                userName = address;
+            }
+            else
+            {
+                throw new UserFriendlyException("Source not support.");
             }
 
-            userName = caHash;
-        }
-        else if (source == SourceNightAElf)
-        {
-            AssertHelper.IsTrue(address == signAddress.ToBase58(), "Invalid address or pubkey");
-            userName = address;
-        }
-        else
-        {
-            throw new UserFriendlyException("Source not support.");
-        }
-
-        var user = await _userManager.FindByNameAsync(userName!);
-        if (user == null)
-        {
-            var userId = Guid.NewGuid();
-            var createUserResult = await CreateUserAsync(_userManager, _userInformationProvider, userId,
-                address!, caHash, caAddressMain, caAddressSide);
-            AssertHelper.IsTrue(createUserResult, "Create user failed.");
-            user = await _userManager.GetByIdAsync(userId);
-        }
-        else
-        {
-            var userSourceInput = new UserGrainDto
+            var user = await _userManager.FindByNameAsync(userName!);
+            if (user == null)
             {
-                Id = user.Id,
-                AelfAddress = caAddressMain,
-                CaHash = caHash,
-                CaAddressMain = caAddressMain,
-                CaAddressSide = caAddressSide,
-            };
-            await _userInformationProvider.SaveUserSourceAsync(userSourceInput);
+                var userId = Guid.NewGuid();
+                var createUserResult = await CreateUserAsync(_userManager, _userInformationProvider, userId,
+                    address!, caHash, caAddressMain, caAddressSide);
+                AssertHelper.IsTrue(createUserResult, "Create user failed.");
+                user = await _userManager.GetByIdAsync(userId);
+            }
+            else
+            {
+                var userSourceInput = new UserGrainDto
+                {
+                    Id = user.Id,
+                    AelfAddress = caAddressMain,
+                    CaHash = caHash,
+                    CaAddressMain = caAddressMain,
+                    CaAddressSide = caAddressSide,
+                };
+                await _userInformationProvider.SaveUserSourceAsync(userSourceInput);
+            }
+
+            var userClaimsPrincipalFactory = context.HttpContext.RequestServices
+                .GetRequiredService<Microsoft.AspNetCore.Identity.IUserClaimsPrincipalFactory<IdentityUser>>();
+            var signInManager = context.HttpContext.RequestServices
+                .GetRequiredService<Microsoft.AspNetCore.Identity.SignInManager<IdentityUser>>();
+            var principal = await signInManager.CreateUserPrincipalAsync(user);
+            var claimsPrincipal = await userClaimsPrincipalFactory.CreateAsync(user);
+            claimsPrincipal.SetScopes("PointsServer");
+            claimsPrincipal.SetResources(await GetResourcesAsync(context, principal.GetScopes()));
+            claimsPrincipal.SetAudiences("PointsServer");
+            // await context.HttpContext.RequestServices.GetRequiredService<AbpOpenIddictClaimDestinationsManager>()
+            //     .SetAsync(principal);
+            return new SignInResult(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, claimsPrincipal);
         }
-
-        var userClaimsPrincipalFactory = context.HttpContext.RequestServices
-            .GetRequiredService<Microsoft.AspNetCore.Identity.IUserClaimsPrincipalFactory<IdentityUser>>();
-        var signInManager = context.HttpContext.RequestServices
-            .GetRequiredService<Microsoft.AspNetCore.Identity.SignInManager<IdentityUser>>();
-        var principal = await signInManager.CreateUserPrincipalAsync(user);
-        var claimsPrincipal = await userClaimsPrincipalFactory.CreateAsync(user);
-        principal.SetScopes("PointsServer");
-        principal.SetResources(await GetResourcesAsync(context, principal.GetScopes()));
-        principal.SetAudiences("PointsServer");
-        // await context.HttpContext.RequestServices.GetRequiredService<AbpOpenIddictClaimDestinationsManager>()
-        //     .SetAsync(principal);
-        var abpOpenIddictClaimDestinationsManager = context.HttpContext.RequestServices
-            .GetRequiredService<AbpOpenIddictClaimsPrincipalManager>();
-
-        await abpOpenIddictClaimDestinationsManager.HandleAsync(context.Request, principal);
-        return new SignInResult(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, principal);
     }
+
+
 
     private async Task<IndexerCAHolderInfos> GetCaHolderInfo(string url, string managerAddress, string? chainId = null)
     {
@@ -209,7 +229,37 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
         };
 
         var graphQlResponse = await graphQlClient.SendQueryAsync<IndexerCAHolderInfos>(graphQlRequest);
-        return graphQlResponse.Data;
+        var indexerCaHolderInfos = graphQlResponse.Data;
+        if (!indexerCaHolderInfos.CaHolderManagerInfo.IsNullOrEmpty())
+        {
+            return indexerCaHolderInfos;
+        }
+
+        var caHolderManagerInfo = await GetCaHolderManagerInfoAsync(managerAddress);
+        if (caHolderManagerInfo != null)
+        {
+            indexerCaHolderInfos.CaHolderManagerInfo.Add(caHolderManagerInfo);
+        }
+
+        return indexerCaHolderInfos;
+    }
+
+    private async Task<CAHolderManager?> GetCaHolderManagerInfoAsync(string manager)
+    {
+        var portkeyCaHolderInfoUrl = _graphQlOption.CurrentValue.PortkeyCaHolderInfoUrl;
+
+        var apiInfo = new ApiInfo(HttpMethod.Get, "/api/app/account/manager/check");
+        var param = new Dictionary<string, string> { { "manager", manager } };
+        try
+        {
+            var resp = await _httpProvider.InvokeAsync<CAHolderManager>(portkeyCaHolderInfoUrl, apiInfo, param: param);
+            return resp;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "get ca holder manager info fail.");
+            return null;
+        }
     }
 
     private async Task<bool> CreateUserAsync(IdentityUserManager userManager,

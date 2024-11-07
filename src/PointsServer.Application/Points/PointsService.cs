@@ -48,10 +48,10 @@ public class PointsService : IPointsService, ISingletonDependency
     public async Task<PagedResultDto<RankingListDto>> GetRankingListAsync(GetRankingListInput input)
     {
         _logger.LogInformation("GetRankingListAsync, req:{req}", JsonConvert.SerializeObject(input));
-        if (input != null && !CollectionUtilities.IsNullOrEmpty(input.Keyword))
-        {
-            input.SkipCount = 0;
-        }
+        // if (input != null && !CollectionUtilities.IsNullOrEmpty(input.Keyword))
+        // {
+        //     input.SkipCount = 0;
+        // }
 
         var pointsList = await
             _pointsProvider.GetOperatorPointsSumIndexListAsync(
@@ -646,6 +646,12 @@ public class PointsService : IPointsService, ISingletonDependency
         }).ToList();
     }
 
+    public async Task<List<PointsListDto>> GetAllPointsListAsync(GetAllPointsListInput input)
+    {
+        var pointsSumIndexerDtos = await _pointsProvider.GetAllPointsListAsync(input);
+        return _objectMapper.Map<List<PointsSumAllIndexerDto>, List<PointsListDto>>(pointsSumIndexerDtos);
+    }
+
     private async Task<Dictionary<string, InviteeNumDto>> GetInviteeNumDic(GetRelationshipInput input)
     {
         var secondLevelFollowersCountDic =
@@ -861,7 +867,17 @@ public class PointsService : IPointsService, ISingletonDependency
         var taskResults = await Task.WhenAll(tasks);
         foreach (var result in taskResults)
         {
-            kolFollowersCountDic.AddIfNotContains(result);
+            foreach (var item in result)
+            {
+                if (kolFollowersCountDic.TryGetValue(item.Key, out var value))
+                {
+                    value.AddRange(item.Value);
+                }
+                else
+                {
+                    kolFollowersCountDic.Add(item.Key, item.Value);
+                }
+            }
         }
 
         return kolFollowersCountDic;

@@ -46,15 +46,15 @@ public class OperatorDomainProvider : IOperatorDomainProvider, ISingletonDepende
 
         var indexerOperatorDomainInfo = await GetIndexerOperatorDomainInfoAsync(domain);
 
-        if (indexerOperatorDomainInfo == null)
-        {
-            return null;
-        }
-
-        if (!getDescribe)
-        {
-            return indexerOperatorDomainInfo;
-        }
+            if (indexerOperatorDomainInfo?.Id == null)
+            {
+                return null;
+            }
+            
+            if (!getDescribe)
+            {
+                return indexerOperatorDomainInfo;
+            }
 
         var operatorDomainIndex = await GetOperatorDomainIndexAsync(domain);
         indexerOperatorDomainInfo.Descibe = operatorDomainIndex?.Descibe;

@@ -41,6 +41,8 @@ public interface IPointsProvider
 
     Task<List<OperatorDomainDto>> GetOperatorDomainListAsync(string dappId, List<string> addressList,
         long skipCount = 0, long maxResultCount = 1000);
+    
+    Task<List<PointsSumAllIndexerDto>> GetAllPointsListAsync(GetAllPointsListInput input);
 }
 
 public class PointsProvider : IPointsProvider, ISingletonDependency
@@ -440,5 +442,56 @@ public class PointsProvider : IPointsProvider, ISingletonDependency
         _logger.LogInformation(
             "GetOperatorDomainListAsync, count: {count}", indexerResult.GetOperatorDomainList.Data.Count);
         return indexerResult.GetOperatorDomainList.Data;
+    }
+
+    public async Task<List<PointsSumAllIndexerDto>> GetAllPointsListAsync(GetAllPointsListInput input)
+    {
+        try
+        {
+            var indexerResult = await _graphQlHelper.QueryAsync<IndexerAllPointsListQueryDto>(new GraphQLRequest
+            {
+                Query =
+                    @"query($lastBlockHeight:Long!,$lastId:String!,$dappName:String!,$role:IncomeSourceType,$maxResultCount:Int!,){
+                    getAllPointsList(input: {lastBlockHeight:$lastBlockHeight,lastId:$lastId,dappName:$dappName,role:$role,maxResultCount:$maxResultCount}){
+                        data {
+                        id,
+                        address,
+                        domain,
+    					role,
+    					dappId,
+                        firstSymbolAmount,
+                        secondSymbolAmount,
+                        thirdSymbolAmount,
+                        fourSymbolAmount,
+                        fiveSymbolAmount,
+                        sixSymbolAmount,
+                        sevenSymbolAmount,
+                        eightSymbolAmount,
+                        nineSymbolAmount,
+                        tenSymbolAmount,
+                        elevenSymbolAmount,
+                        twelveSymbolAmount,
+    					createTime,
+                        updateTime,
+                        blockHeight,
+                        }
+                }
+            }",
+                Variables = new
+                {
+                    lastBlockHeight = input.LastBlockHeight, lastId = input.LastId, 
+                    dappName = string.IsNullOrEmpty(input.DappName) ? "" : input.DappName,
+                    maxResultCount = input.MaxResultCount, role = OperatorRole.Kol
+                }
+            });
+            _logger.LogInformation(
+                "getAllPointsList, count: {count}", indexerResult.GetAllPointsList.Data.Count);
+            return indexerResult.GetAllPointsList.Data;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "GetAllPointsList Indexer error");
+            return new List<PointsSumAllIndexerDto>();
+        }
     }
 }
