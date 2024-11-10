@@ -157,6 +157,7 @@ public class PointsService : IPointsService, ISingletonDependency
         {
             var displayName = await GetDisplayNameAsync(input.DappName, actionPoints);
             var symbolName = await GetDisplaySymbolAsync(input.DappName, actionPoints);
+            actionPoints.Symbol = symbolName;
             if (string.IsNullOrEmpty(displayName))
             {
                 continue;
