@@ -193,8 +193,7 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
             claimsPrincipal.SetAudiences("PointsServer");
             // await context.HttpContext.RequestServices.GetRequiredService<AbpOpenIddictClaimDestinationsManager>()
             //     .SetAsync(principal);
-            return new SignInResult(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, claimsPrincipal);
-        }
+            return new SignInResult(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, claimsPrincipal); 
     }
 
 
