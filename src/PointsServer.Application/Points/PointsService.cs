@@ -156,6 +156,8 @@ public class PointsService : IPointsService, ISingletonDependency
         foreach (var actionPoints in actionPointList)
         {
             var displayName = await GetDisplayNameAsync(input.DappName, actionPoints);
+            var symbolName = await GetDisplaySymbolAsync(input.DappName, actionPoints);
+            actionPoints.Symbol = symbolName;
             if (string.IsNullOrEmpty(displayName))
             {
                 continue;
@@ -319,6 +321,8 @@ public class PointsService : IPointsService, ISingletonDependency
         foreach (var actionPoints in actionPointList)
         {
             var displayName = await GetDisplayNameAsync(input.DappName, actionPoints);
+            var symbolName = await GetDisplaySymbolAsync(input.DappName, actionPoints);
+            actionPoints.Symbol = symbolName;
             if (string.IsNullOrEmpty(displayName))
             {
                 continue;
@@ -436,6 +440,19 @@ public class PointsService : IPointsService, ISingletonDependency
             return "";
         }
         return "";
+    }
+    
+    private async Task<string> GetDisplaySymbolAsync(string dappName, ActionPoints actionPoints)
+    {
+        try
+        {
+            var pointsRules =  await _pointsRulesProvider.GetPointsRulesAsync(dappName, actionPoints.Action);
+            return pointsRules.Symbol;
+        }
+        catch (Exception e)
+        {
+            return "";
+        }
     }
 
     public async Task<MyPointDetailsDto> GetMyPointsAsync(GetMyPointsInput input)
