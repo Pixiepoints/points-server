@@ -855,6 +855,22 @@ public class PointsService : IPointsService, ISingletonDependency
     private async Task<Dictionary<string, long>> GetInviteFollowersCountDicAsync(List<string> addressList)
     {
         var res = new List<UserReferralCountDto>();
+        var recurCount = addressList.Count / 1000 + 1;
+        for (var i = 0; i < recurCount; i++)
+        {
+            var skipCount = 1000 * i;
+            var list = addressList.Skip(skipCount).Take(1000).ToList();
+            if (list.IsNullOrEmpty()) return new Dictionary<string, long>();
+            var result = await BatchGetInviteFollowersCountDicAsync(list);
+            res.AddRange(result);
+        }
+        return res.GroupBy(u => u.Referrer)
+            .ToDictionary(g => g.Key, g => g.First().InviteeNumber);
+    }
+    
+    private async Task<List<UserReferralCountDto>> BatchGetInviteFollowersCountDicAsync(List<string> addressList)
+    {
+        var res = new List<UserReferralCountDto>();
         var skipCount = 0;
         var maxResultCount = 5000;
         List<UserReferralCountDto> list;
@@ -871,8 +887,7 @@ public class PointsService : IPointsService, ISingletonDependency
             skipCount += count;
         } while (!list.IsNullOrEmpty());
 
-        return res.GroupBy(u => u.Referrer)
-            .ToDictionary(g => g.Key, g => g.First().InviteeNumber);
+        return res;
     }
 
     private async Task<Dictionary<string, List<DomainUserRelationShipIndexerDto>>> GetKolFollowersCountDicAsync(
