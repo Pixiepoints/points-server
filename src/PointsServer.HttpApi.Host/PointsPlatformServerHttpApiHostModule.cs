@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using AutoResponseWrapper;
 using GraphQL.Client.Abstractions;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.Newtonsoft;
@@ -63,6 +64,7 @@ namespace PointsServer
             ConfigureSwaggerServices(context, configuration);
             ConfigureOrleans(context, configuration);
             ConfigureGraphQl(context, configuration);
+            context.Services.AddAutoResponseWrapper();
         }
 
         private void ConfigureCache(IConfiguration configuration)
