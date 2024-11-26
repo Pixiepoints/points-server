@@ -7,11 +7,11 @@ using System.Text;
 using System.Threading.Tasks;
 using AElf;
 using AElf.Cryptography;
+using AElf.ExceptionHandler;
 using AElf.Types;
 using GraphQL;
 using GraphQL.Client.Http;
 using GraphQL.Client.Serializer.Newtonsoft;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -21,6 +21,7 @@ using OpenIddict.Server.AspNetCore;
 using PointsServer.Common;
 using PointsServer.Common.HttpClient;
 using PointsServer.Dto;
+using PointsServer.Exceptions;
 using PointsServer.Options;
 using PointsServer.Users;
 using PointsServer.Users.Provider;
@@ -63,27 +64,31 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
 
     public string Name { get; } = "signature";
 
-    public async Task<IActionResult> HandleAsync(ExtensionGrantContext context)
+    [ExceptionHandler([typeof(UserFriendlyException)], TargetType = typeof(ExceptionHandlingService),
+        MethodName = nameof(ExceptionHandlingService.HandleExceptionWithInvalidRequest), LogTargets = ["context"],
+        Message = "SignatureGrantHandler error")]
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
+        MethodName = nameof(ExceptionHandlingService.HandleExceptionWithServerError), LogTargets = ["context"],
+        Message = "SignatureGrantHandler error")]
+    public virtual async Task<IActionResult> HandleAsync(ExtensionGrantContext context)
     {
-        try
-        {
-            var publicKeyVal = context.Request.GetParameter("publickey").ToString();
-            var signatureVal = context.Request.GetParameter("signature").ToString();
-            var timestampVal = context.Request.GetParameter("timestamp").ToString();
-            var address = context.Request.GetParameter("address").ToString();
-            var source = context.Request.GetParameter("source").ToString();
+        var publicKeyVal = context.Request.GetParameter("publickey").ToString();
+        var signatureVal = context.Request.GetParameter("signature").ToString();
+        var timestampVal = context.Request.GetParameter("timestamp").ToString();
+        var address = context.Request.GetParameter("address").ToString();
+        var source = context.Request.GetParameter("source").ToString();
 
-            AssertHelper.NotEmpty(source, "invalid parameter source.");
-            AssertHelper.NotEmpty(publicKeyVal, "invalid parameter publickey.");
-            AssertHelper.NotEmpty(signatureVal, "invalid parameter signature.");
-            AssertHelper.NotEmpty(timestampVal, "invalid parameter timestamp.");
-            AssertHelper.NotEmpty(address, "invalid parameter address.");
-            AssertHelper.IsTrue(long.TryParse(timestampVal, out var timestamp) && timestamp > 0,
-                "invalid parameter timestamp value.");
+        AssertHelper.NotEmpty(source, "invalid parameter source.");
+        AssertHelper.NotEmpty(publicKeyVal, "invalid parameter publickey.");
+        AssertHelper.NotEmpty(signatureVal, "invalid parameter signature.");
+        AssertHelper.NotEmpty(timestampVal, "invalid parameter timestamp.");
+        AssertHelper.NotEmpty(address, "invalid parameter address.");
+        AssertHelper.IsTrue(long.TryParse(timestampVal, out var timestamp) && timestamp > 0,
+            "invalid parameter timestamp value.");
 
-            var publicKey = ByteArrayHelper.HexStringToByteArray(publicKeyVal);
-            var signature = ByteArrayHelper.HexStringToByteArray(signatureVal);
-            var signAddress = Address.FromPublicKey(publicKey);
+        var publicKey = ByteArrayHelper.HexStringToByteArray(publicKeyVal);
+        var signature = ByteArrayHelper.HexStringToByteArray(signatureVal);
+        var signAddress = Address.FromPublicKey(publicKey);
 
             var newSignText = """
                               Welcome to PixiePoints! Click to connect wallet to and accept its Terms of Service and Privacy Policy. This request will not trigger a blockchain transaction or cost any gas fees.
@@ -186,32 +191,12 @@ public class SignatureGrantHandler : ITokenExtensionGrant, ITransientDependency
             claimsPrincipal.SetScopes("PointsServer");
             claimsPrincipal.SetResources(await GetResourcesAsync(context, principal.GetScopes()));
             claimsPrincipal.SetAudiences("PointsServer");
-            await context.HttpContext.RequestServices.GetRequiredService<AbpOpenIddictClaimDestinationsManager>()
-                .SetAsync(principal);
-            return new SignInResult(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, claimsPrincipal);
-        }
-        catch (UserFriendlyException e)
-        {
-            _logger.LogWarning("Create token failed: {Message}", e.Message);
-            return ForbidResult(OpenIddictConstants.Errors.InvalidRequest, e.Message);
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "Create token error");
-            return ForbidResult(OpenIddictConstants.Errors.ServerError, "Internal error.");
-        }
+            // await context.HttpContext.RequestServices.GetRequiredService<AbpOpenIddictClaimDestinationsManager>()
+            //     .SetAsync(principal);
+            return new SignInResult(OpenIddictServerAspNetCoreDefaults.AuthenticationScheme, claimsPrincipal); 
     }
 
-    private static ForbidResult ForbidResult(string errorType, string errorDescription)
-    {
-        return new ForbidResult(
-            new[] { OpenIddictServerAspNetCoreDefaults.AuthenticationScheme },
-            properties: new AuthenticationProperties(new Dictionary<string, string>
-            {
-                [OpenIddictServerAspNetCoreConstants.Properties.Error] = errorType,
-                [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] = errorDescription
-            }!));
-    }
+
 
     private async Task<IndexerCAHolderInfos> GetCaHolderInfo(string url, string managerAddress, string? chainId = null)
     {

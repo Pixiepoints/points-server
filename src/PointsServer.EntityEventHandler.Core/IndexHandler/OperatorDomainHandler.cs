@@ -1,8 +1,10 @@
 using System;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
 using PointsServer.Apply.Etos;
+using PointsServer.Grains.Exceptions;
 using PointsServer.Operator;
 using Volo.Abp.DependencyInjection;
 using Volo.Abp.EventBus.Distributed;
@@ -26,7 +28,9 @@ public class OperatorDomainHandler : IDistributedEventHandler<OperatorDomainCrea
         _logger = logger;
     }
 
-
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
+        MethodName = nameof(ExceptionHandlingService.HandleException), LogOnly = true,
+        LogTargets = ["eventData"], Message = "OperatorDomainHandler create error")]
     public async Task HandleEventAsync(OperatorDomainCreateEto eventData)
     {
         if (eventData == null)
@@ -34,21 +38,18 @@ public class OperatorDomainHandler : IDistributedEventHandler<OperatorDomainCrea
             return;
         }
 
-        try
-        {
-            var operatorDomainIndex =
-                _objectMapper.Map<OperatorDomainCreateEto, OperatorDomainInfoIndex>(eventData);
+        var operatorDomainIndex =
+            _objectMapper.Map<OperatorDomainCreateEto, OperatorDomainInfoIndex>(eventData);
 
-            await _operatorDomainRepository.AddAsync(operatorDomainIndex);
+        await _operatorDomainRepository.AddAsync(operatorDomainIndex);
 
-            _logger.LogDebug("OperatorDomain information add success: {domain}", operatorDomainIndex.Domain);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "OperatorDomain information add fail: {domain}", eventData.Domain);
-        }
+        _logger.LogDebug("OperatorDomain information add success: {domain}", operatorDomainIndex.Domain);
     }
 
+
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
+        MethodName = nameof(ExceptionHandlingService.HandleException), LogOnly = true,
+        LogTargets = ["eventData"], Message = "OperatorDomainHandler update error")]
     public async Task HandleEventAsync(OperatorDomainUpdateEto eventData)
     {
         if (eventData == null)
@@ -56,18 +57,11 @@ public class OperatorDomainHandler : IDistributedEventHandler<OperatorDomainCrea
             return;
         }
 
-        try
-        {
-            var operatorDomainIndex =
-                _objectMapper.Map<OperatorDomainUpdateEto, OperatorDomainInfoIndex>(eventData);
+        var operatorDomainIndex =
+            _objectMapper.Map<OperatorDomainUpdateEto, OperatorDomainInfoIndex>(eventData);
 
-            await _operatorDomainRepository.UpdateAsync(operatorDomainIndex);
+        await _operatorDomainRepository.UpdateAsync(operatorDomainIndex);
 
-            _logger.LogDebug("OperatorDomain information update success: {domain}", operatorDomainIndex.Domain);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "OperatorDomain information update fail: {domain}", eventData.Domain);
-        }
+        _logger.LogDebug("OperatorDomain information update success: {domain}", operatorDomainIndex.Domain);
     }
 }

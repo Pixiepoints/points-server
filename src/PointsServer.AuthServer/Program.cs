@@ -41,7 +41,8 @@ public class Program
             builder.Host.AddAppSettingsSecretsJson()
                 .UseAutofac()
                 .UseApollo()
-                .UseSerilog();
+                .UseSerilog()
+                .UseOrleansClient();
             await builder.AddApplicationAsync<PointsServerAuthServerModule>();
             var app = builder.Build();
             await app.InitializeApplicationAsync();

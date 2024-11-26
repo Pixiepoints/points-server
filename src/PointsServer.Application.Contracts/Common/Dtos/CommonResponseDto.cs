@@ -1,5 +1,4 @@
 using System;
-using AutoResponseWrapper.Response;
 using JetBrains.Annotations;
 using Volo.Abp;
 
@@ -37,7 +36,4 @@ public class CommonResponseDto<T> : ResponseDto
             ? Error(ufe.Code, message ?? ufe.Message)
             : Error(CommonErrorCode, message ?? e.Message);
     }
-
-
-
 }

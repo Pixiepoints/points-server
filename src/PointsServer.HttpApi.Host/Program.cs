@@ -32,7 +32,8 @@ namespace PointsServer
                 builder.Host.AddAppSettingsSecretsJson()
                     .UseApollo()
                     .UseAutofac()
-                    .UseSerilog();
+                    .UseSerilog()
+                    .UseOrleansClient();
 
                 await builder.AddApplicationAsync<PointsServerHttpApiHostModule>();
                 var app = builder.Build();

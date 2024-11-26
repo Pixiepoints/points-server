@@ -44,6 +44,7 @@ namespace PointsServer.ContractEventHandler
                     services.AddApplication<PointsServerContractEventHandlerModule>();
                 })
                 .UseAutofac()
-                .UseSerilog();
+                .UseSerilog()
+                .UseOrleansClient();
     }
 }
