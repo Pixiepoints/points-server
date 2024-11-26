@@ -63,10 +63,9 @@ public static class OrleansHostExtensions
                     options.ClusterId = clusterId;
                     options.ServiceId = serviceId;
                 })
-                // .AddMemoryGrainStorage("PubSubStore")
-                .ConfigureApplicationParts(parts => parts.AddFromApplicationBaseDirectory())
-                .UseDashboard(options =>
-                {
+               .AddMemoryGrainStorage("PubSubStore")
+                // .ConfigureApplicationParts(parts => parts.AddFromApplicationBaseDirectory())
+                .UseDashboard(options => {
                     options.Username = configSection.GetValue<string>("DashboardUserName");
                     options.Password = configSection.GetValue<string>("DashboardPassword");
                     options.Host = "*";
@@ -74,7 +73,7 @@ public static class OrleansHostExtensions
                     options.HostSelf = true;
                     options.CounterUpdateIntervalMs = configSection.GetValue<int>("DashboardCounterUpdateIntervalMs");
                 })
-                .UseLinuxEnvironmentStatistics()
+                // .UseLinuxEnvironmentStatistics()
                 .ConfigureLogging(logging => { logging.SetMinimumLevel(LogLevel.Debug).AddConsole(); });
         });
     }

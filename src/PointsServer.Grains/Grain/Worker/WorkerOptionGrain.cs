@@ -1,5 +1,6 @@
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.Logging;
-using Orleans;
+using PointsServer.Grains.Exceptions;
 using PointsServer.Grains.State.Worker;
 using Volo.Abp.ObjectMapping;
 
@@ -22,17 +23,17 @@ public class WorkerOptionGrain : Grain<WorkerOptionState>, IWorkerOptionGrain
         _logger = logger;
     }
 
-    public override async Task OnActivateAsync()
-    {
-        await ReadStateAsync();
-        await base.OnActivateAsync();
-    }
-
-    public override async Task OnDeactivateAsync()
-    {
-        await WriteStateAsync();
-        await base.OnDeactivateAsync();
-    }
+    // public override async Task OnActivateAsync()
+    // {
+    //     await ReadStateAsync();
+    //     await base.OnActivateAsync();
+    // }
+    //
+    // public override async Task OnDeactivateAsync()
+    // {
+    //     await WriteStateAsync();
+    //     await base.OnDeactivateAsync();
+    // }
 
     public Task<GrainResultDto<long>> GetLatestExecuteTimeAsync()
     {
@@ -44,28 +45,21 @@ public class WorkerOptionGrain : Grain<WorkerOptionState>, IWorkerOptionGrain
         return Task.FromResult(result);
     }
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
+        MethodName = nameof(ExceptionHandlingService.HandleException), ReturnDefault = ReturnDefault.New,
+        LogTargets = ["dto"], Message = "UpdateLatestExecuteTimeAsync error")]
     public async Task<GrainResultDto<WorkerOptionGrainDto>> UpdateLatestExecuteTimeAsync(WorkerOptionGrainDto dto)
     {
         var result = new GrainResultDto<WorkerOptionGrainDto>();
 
-        try
-        {
-            State.Id = this.GetPrimaryKeyString();
-            State.Type = dto.Type;
-            State.LatestExecuteTime = dto.LatestExecuteTime;
+        State.Id = this.GetPrimaryKeyString();
+        State.Type = dto.Type;
+        State.LatestExecuteTime = dto.LatestExecuteTime;
 
+        await WriteStateAsync();
 
-            await WriteStateAsync();
-
-            result.Success = true;
-            result.Data = _objectMapper.Map<WorkerOptionState, WorkerOptionGrainDto>(State);
-            return result;
-        }
-        catch (Exception e)
-        {
-            _logger.LogError(e, "UpdateLatestExecuteTimeAsync error, Address:{Type}", dto.Type);
-            result.Message = e.Message;
-            return result;
-        }
+        result.Success = true;
+        result.Data = _objectMapper.Map<WorkerOptionState, WorkerOptionGrainDto>(State);
+        return result;
     }
 }

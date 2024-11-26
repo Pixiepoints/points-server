@@ -13,12 +13,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
-using Orleans;
-using Orleans.Configuration;
-using Orleans.Providers.MongoDB.Configuration;
-using PointsServer.Grains;
 using PointsServer.MongoDB;
 using PointsServer.Options;
 using StackExchange.Redis;
@@ -34,7 +29,6 @@ using Volo.Abp.EventBus.RabbitMq;
 using Volo.Abp.Localization;
 using Volo.Abp.Modularity;
 using Volo.Abp.Swashbuckle;
-using Volo.Abp.Threading;
 using Volo.Abp.VirtualFileSystem;
 
 namespace PointsServer
@@ -159,8 +153,8 @@ namespace PointsServer
                 options.Languages.Add(new LanguageInfo("en-GB", "en-GB", "English (UK)"));
                 options.Languages.Add(new LanguageInfo("fi", "fi", "Finnish"));
                 options.Languages.Add(new LanguageInfo("fr", "fr", "Français"));
-                options.Languages.Add(new LanguageInfo("hi", "hi", "Hindi", "in"));
-                options.Languages.Add(new LanguageInfo("it", "it", "Italian", "it"));
+                options.Languages.Add(new LanguageInfo("hi", "hi", "Hindi"));
+                options.Languages.Add(new LanguageInfo("it", "it", "Italian"));
                 options.Languages.Add(new LanguageInfo("hu", "hu", "Magyar"));
                 options.Languages.Add(new LanguageInfo("pt-BR", "pt-BR", "Português"));
                 options.Languages.Add(new LanguageInfo("ru", "ru", "Русский"));
@@ -168,8 +162,8 @@ namespace PointsServer
                 options.Languages.Add(new LanguageInfo("tr", "tr", "Türkçe"));
                 options.Languages.Add(new LanguageInfo("zh-Hans", "zh-Hans", "简体中文"));
                 options.Languages.Add(new LanguageInfo("zh-Hant", "zh-Hant", "繁體中文"));
-                options.Languages.Add(new LanguageInfo("de-DE", "de-DE", "Deutsch", "de"));
-                options.Languages.Add(new LanguageInfo("es", "es", "Español", "es"));
+                options.Languages.Add(new LanguageInfo("de-DE", "de-DE", "Deutsch"));
+                options.Languages.Add(new LanguageInfo("es", "es", "Español"));
             });
         }
 
@@ -211,26 +205,26 @@ namespace PointsServer
 
         private static void ConfigureOrleans(ServiceConfigurationContext context, IConfiguration configuration)
         {
-            context.Services.AddSingleton<IClusterClient>(o =>
-            {
-                return new ClientBuilder()
-                    .ConfigureDefaults()
-                    .UseMongoDBClient(configuration["Orleans:MongoDBClient"])
-                    .UseMongoDBClustering(options =>
-                    {
-                        options.DatabaseName = configuration["Orleans:DataBase"];
-                        options.Strategy = MongoDBMembershipStrategy.SingleDocument;
-                    })
-                    .Configure<ClusterOptions>(options =>
-                    {
-                        options.ClusterId = configuration["Orleans:ClusterId"];
-                        options.ServiceId = configuration["Orleans:ServiceId"];
-                    })
-                    .ConfigureApplicationParts(parts =>
-                        parts.AddApplicationPart(typeof(PointsServerGrainsModule).Assembly).WithReferences())
-                    .ConfigureLogging(builder => builder.AddProvider(o.GetService<ILoggerProvider>()))
-                    .Build();
-            });
+            // context.Services.AddSingleton<IClusterClient>(o =>
+            // {
+            //     return new ClientBuilder()
+            //         .ConfigureDefaults()
+            //         .UseMongoDBClient(configuration["Orleans:MongoDBClient"])
+            //         .UseMongoDBClustering(options =>
+            //         {
+            //             options.DatabaseName = configuration["Orleans:DataBase"];
+            //             options.Strategy = MongoDBMembershipStrategy.SingleDocument;
+            //         })
+            //         .Configure<ClusterOptions>(options =>
+            //         {
+            //             options.ClusterId = configuration["Orleans:ClusterId"];
+            //             options.ServiceId = configuration["Orleans:ServiceId"];
+            //         })
+            //         .ConfigureApplicationParts(parts =>
+            //             parts.AddApplicationPart(typeof(PointsServerGrainsModule).Assembly).WithReferences())
+            //         .ConfigureLogging(builder => builder.AddProvider(o.GetService<ILoggerProvider>()))
+            //         .Build();
+            // });
         }
 
         private void ConfigureGraphQl(ServiceConfigurationContext context,
@@ -276,24 +270,24 @@ namespace PointsServer
             app.UseUnitOfWork();
             app.UseConfiguredEndpoints();
 
-            StartOrleans(context.ServiceProvider);
+            // StartOrleans(context.ServiceProvider);
         }
 
         public override void OnApplicationShutdown(ApplicationShutdownContext context)
         {
-            StopOrleans(context.ServiceProvider);
+            // StopOrleans(context.ServiceProvider);
         }
 
-        private static void StartOrleans(IServiceProvider serviceProvider)
-        {
-            var client = serviceProvider.GetRequiredService<IClusterClient>();
-            AsyncHelper.RunSync(async () => await client.Connect());
-        }
-
-        private static void StopOrleans(IServiceProvider serviceProvider)
-        {
-            var client = serviceProvider.GetRequiredService<IClusterClient>();
-            AsyncHelper.RunSync(client.Close);
-        }
+        // private static void StartOrleans(IServiceProvider serviceProvider)
+        // {
+        //     var client = serviceProvider.GetRequiredService<IClusterClient>();
+        //     AsyncHelper.RunSync(async () => await client.Connect());
+        // }
+        //
+        // private static void StopOrleans(IServiceProvider serviceProvider)
+        // {
+        //     var client = serviceProvider.GetRequiredService<IClusterClient>();
+        //     AsyncHelper.RunSync(client.Close);
+        // }
     }
 }

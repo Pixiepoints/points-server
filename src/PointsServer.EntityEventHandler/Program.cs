@@ -48,6 +48,7 @@ namespace PointsServer.EntityEventHandler
                 .ConfigureAppConfiguration((h, c) => c.AddJsonFile("apollo.appsettings.json"))
                 .UseApollo()
                 .UseAutofac()
-                .UseSerilog();
+                .UseSerilog()
+                .UseOrleansClient();
     }
 }

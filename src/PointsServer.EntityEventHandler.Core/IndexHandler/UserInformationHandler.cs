@@ -1,8 +1,9 @@
 using System;
 using System.Threading.Tasks;
+using AElf.ExceptionHandler;
 using AElf.Indexing.Elasticsearch;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
+using PointsServer.Grains.Exceptions;
 using PointsServer.Users.Etos;
 using PointsServer.Users.Index;
 using Volo.Abp.DependencyInjection;
@@ -27,6 +28,9 @@ public class UserInformationHandler : IDistributedEventHandler<UserInformationEt
     }
 
 
+    [ExceptionHandler(typeof(Exception), TargetType = typeof(ExceptionHandlingService),
+        MethodName = nameof(ExceptionHandlingService.HandleException), LogOnly = true,
+        LogTargets = ["eventData"], Message = "UserInformationHandler error")]
     public async Task HandleEventAsync(UserInformationEto eventData)
     {
         if (eventData == null)
@@ -34,15 +38,8 @@ public class UserInformationHandler : IDistributedEventHandler<UserInformationEt
             return;
         }
 
-        try
-        {
-            var contact = _objectMapper.Map<UserInformationEto, UserIndex>(eventData);
-            await _userRepository.AddAsync(contact);
-            _logger.LogDebug("HandleEventAsync UserInformationEto success");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "{Message}", JsonConvert.SerializeObject(eventData));
-        }
+        var contact = _objectMapper.Map<UserInformationEto, UserIndex>(eventData);
+        await _userRepository.AddAsync(contact);
+        _logger.LogDebug("HandleEventAsync UserInformationEto success");
     }
 }

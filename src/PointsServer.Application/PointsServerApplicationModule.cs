@@ -1,3 +1,4 @@
+using AElf.ExceptionHandler;
 using Microsoft.Extensions.DependencyInjection;
 using PointsServer.DApps;
 using PointsServer.Grains;
